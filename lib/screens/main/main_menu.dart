@@ -7,6 +7,7 @@ import 'dart:math' as math;
 
 import 'package:psycho_app/custom_widgets/wave/wave.dart';
 import 'package:psycho_app/screens/game/game.dart';
+import 'package:psycho_app/screens/settings/settings.dart';
 
 class MainMenu extends StatefulWidget {
   @override
@@ -150,8 +151,13 @@ class _MainMenuState extends State<MainMenu>
       ),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Fade',
-        child: Icon(Icons.brush),
-        onPressed: () {},
+        child: Icon(Icons.settings),
+        onPressed: () {
+          Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => Settings()),
+        );
+        },
       ),
     );
   }

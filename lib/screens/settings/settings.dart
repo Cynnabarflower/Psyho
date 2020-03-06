@@ -11,14 +11,10 @@ class _Settings extends State<Settings> {
   @override
   void initState() {
     super.initState();
-
-
   }
 
   @override
   void dispose() {
-
-
     super.dispose();
   }
 
@@ -33,7 +29,7 @@ class _Settings extends State<Settings> {
         tooltip: 'Fade',
         child: Icon(Icons.brush),
         onPressed: () {
-
+          Navigator.pop(context);
         },
       ),
     );

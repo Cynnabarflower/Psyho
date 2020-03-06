@@ -6,46 +6,23 @@ import 'package:psycho_app/custom_widgets/wave/config.dart';
 import 'dart:math' as math;
 
 import 'package:psycho_app/custom_widgets/wave/wave.dart';
+import 'package:psycho_app/screens/reward/reward.dart';
 
 class Game extends StatefulWidget {
   @override
   _GameState createState() => _GameState();
 }
 
-class _GameState extends State<Game> with SingleTickerProviderStateMixin {
-  AnimationController animationController;
-  Animation<double> animation;
+class _GameState extends State<Game> {
 
   @override
   void initState() {
     super.initState();
-    animationController =
-        new AnimationController(vsync: this, duration: Duration(seconds: 10));
 
-    final curve = new CurvedAnimation(
-        parent: animationController,
-        curve: Curves.bounceIn,
-        reverseCurve: Curves.easeOut);
-
-    animationController.addListener(() {
-      setState(() {});
-    });
-    animationController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        animationController.reverse();
-      } else if (status == AnimationStatus.dismissed) {
-        animationController.forward();
-      }
-    });
-
-    animation = Tween<double>(begin: 0, end: 2).animate(curve);
-
-    animationController.forward();
   }
 
   @override
   void dispose() {
-    animationController.dispose();
     super.dispose();
   }
 
@@ -59,24 +36,15 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
             Expanded(
               flex: 3,
         child:
-
-
                 Container(
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: <Color>[
-                        const Color(0x88ffe200),
-                        const Color(0x88fda72d),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xffaaaaaa),
                   ),
                   child: GestureDetector(
                     onTap: () => {print('tapped')},
                     child: Image(
-                      image: AssetImage("assets/clown.png"),
+                      image: AssetImage("assets/balloons/201.JPG"),
                     ),
                   ),
                 ),
@@ -107,7 +75,12 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
                         color: const Color(0x88008800),
                       ),
                       child: GestureDetector(
-                        onTap: () => {print('tapped')},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => Reward()),
+                          );
+                        },
                       ),
                     ))
               ]
