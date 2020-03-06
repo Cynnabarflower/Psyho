@@ -59,8 +59,8 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
             Expanded(
               flex: 3,
         child:
-            Row(
-              children: [
+
+
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -73,7 +73,6 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
                     ),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  padding: EdgeInsets.all(16),
                   child: GestureDetector(
                     onTap: () => {print('tapped')},
                     child: Image(
@@ -81,8 +80,8 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
                     ),
                   ),
                 ),
-              ],
-            )
+
+
             ),
             Expanded(
               flex: 1,
@@ -90,48 +89,25 @@ class _GameState extends State<Game> with SingleTickerProviderStateMixin {
             Row(
 
               children: [
-                Flexible(
+                Expanded(
                   flex: 1,
                     child: Container(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: <Color>[
-                        const Color(0x88ffe200),
-                        const Color(0x88fda72d),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0x88880000),
                   ),
-                  padding: EdgeInsets.all(16),
                   child: GestureDetector(
                     onTap: () => {print('tapped')},
-                    child: Image(
-                      image: AssetImage("assets/clown.png"),
-                    ),
                   ),
                 )),
-                Flexible(
+                Expanded(
                     flex: 1,
                     child: Container(
+
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: <Color>[
-                            const Color(0x88ffe200),
-                            const Color(0x88fda72d),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
+                        color: const Color(0x88008800),
                       ),
-                      padding: EdgeInsets.all(16),
                       child: GestureDetector(
                         onTap: () => {print('tapped')},
-                        child: Image(
-                          image: AssetImage("assets/clown.png"),
-                        ),
                       ),
                     ))
               ]
