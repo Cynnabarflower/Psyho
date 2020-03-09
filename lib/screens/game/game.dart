@@ -23,7 +23,7 @@ class Game extends StatefulWidget {
 
 class _GameState extends State<Game> with TickerProviderStateMixin {
   List<AssetImage> images = [];
-  int currentImage = 0;
+  int currentImageNumber = 0;
   int countDown = 3;
   AnimationController controller;
   Widget mainWidget;
@@ -34,6 +34,8 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
   DateTime startTime;
   List<int> answers = [];
   List<Statistics> statistics = [];
+  List<AssetImage> resetImages = [];
+  Timer timer;
 
   @override
   void initState() {
@@ -70,30 +72,39 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
     for (var key in manifestMap.keys) {
       if (key.startsWith(widget.folderName)) {
         if (key.toLowerCase().endsWith('.jpg') ||
-            key.toLowerCase().endsWith('.png'))
+            key.toLowerCase().endsWith('.png')) if (key
+                .endsWith('BMTblue.JPG') ||
+            key.endsWith("BMTgreen.JPG")) {
+          resetImages.add(AssetImage(key));
+        } else
           images.add(AssetImage(key));
-        else if (key.toLowerCase().endsWith('answers.txt')) {
-          DefaultAssetBundle.of(context).loadString(key).then((value) {
-            List<String> answers = value.toString().split('\n');
-            for (var answer in answers) {
-              switch (answer.trim()) {
-                case "s":
-                  this.answers.add(1);
-                  break;
-                case "d":
-                  this.answers.add(2);
-                  break;
-                case "f":
-                  this.answers.add(0);
-                  break;
-                default:
-                  break;
-              }
-            }
-          });
-        }
       }
     }
+
+    DefaultAssetBundle.of(context)
+        .loadString('assets/balloons/answers.txt')
+        .then((value) {
+      List<String> answers = value.toString().split('\n');
+      int offset = 0;
+      for (var answer in answers) {
+        switch (answer.trim()) {
+          case "s":
+            this.answers.add(1);
+            break;
+          case "d":
+            this.answers.add(2);
+            break;
+          case "f":
+            images.insert(
+                this.answers.length, resetImages[math.Random().nextInt(2)]);
+            this.answers.add(0);
+            this.answers.add(0);
+            break;
+          default:
+            break;
+        }
+      }
+    });
 
     return true;
   }
@@ -115,6 +126,12 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
           builder: (BuildContext context, AsyncSnapshot snapshot) {
             if (snapshot.connectionState == ConnectionState.done &&
                 countDown <= 0) {
+              if (timer != null)
+                timer.cancel();
+              timer = Timer(Duration(seconds: 3), () {
+                print('timer!');
+                choiceMade(0);
+              });
               return Column(
                 children: [
                   Expanded(
@@ -127,7 +144,7 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
                       child: GestureDetector(
                         onTap: () => {print('tapped')},
                         child: Image(
-                          image: images[currentImage],
+                          image: images[currentImageNumber],
                         ),
                       ),
                     ),
@@ -165,30 +182,32 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
               );
             } else {
               controller.forward();
-              return Container(
-                alignment: Alignment.center,
-                child: AnimatedBuilder(
-                  animation: controller,
-                  child: Container(
-                    color: Colors.amber,
+              return Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  FittedBox(
                     alignment: Alignment.center,
-                    child: FittedBox(
-                      fit: BoxFit.contain,
-                      child: RichText(
-                        text: TextSpan(
-                            style: TextStyle(
-                                color: Colors.redAccent, fontSize: 72),
-                            text: countDown.toString()),
-                      ),
+                    fit: BoxFit.contain,
+                    child: RichText(
+                      text: TextSpan(
+                          style: TextStyle(
+                              color: Colors.redAccent),
+                          text: countDown.toString()),
                     ),
                   ),
-                  builder: (BuildContext context, Widget child) {
-                    return Opacity(
-                      opacity: countDownOpaque.value,
-                      child: child,
-                    );
-                  },
-                ),
+                  AnimatedBuilder(
+                    animation: controller,
+                    child: Container(
+                      color: Colors.amber
+                    ),
+                    builder: (BuildContext context, Widget child) {
+                      return Opacity(
+                        opacity: countDownOpaque.value,
+                        child: child,
+                      );
+                    },
+                  ),
+                ],
               );
             }
           }),
@@ -198,10 +217,10 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
   void choiceMade(int answer) {
     statistics.add(Statistics(
         DateTime.now().difference(startTime).inMicroseconds,
-        answers[currentImage] == answer || answers[currentImage] == 0
-    ));
-    currentImage++;
-    if (currentImage >= images.length || currentImage > 16) {
+        answers[currentImageNumber] == answer ||
+            answers[currentImageNumber] == 0));
+    currentImageNumber++;
+    if (currentImageNumber >= images.length || currentImageNumber > 12) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => Reward(statistics)),

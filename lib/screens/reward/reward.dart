@@ -73,31 +73,37 @@ class _RewardState extends State<Reward> {
                         Image(
                           image: AssetImage("assets/cup.png"),
                         ),
-                        FittedBox(
-                          child: RichText(
-                            textAlign: TextAlign.center,
-                            text: TextSpan(
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                shadows: List.generate(2, (index) => Shadow(offset: Offset(0.5,0.5))),
-                                color: Colors.redAccent,
+                        Container(
+                          height: 300,
+                          alignment: Alignment.center,
+                          child: FittedBox(
+                            alignment: Alignment.center,
+                            fit: BoxFit.scaleDown,
+                            child: RichText(
+                              textAlign: TextAlign.center,
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  shadows: List.generate(2, (index) => Shadow(offset: Offset(0.5,0.5))),
+                                  color: Colors.redAccent,
+                                ),
+                                  children: [
+                                    TextSpan(
+                                        style: TextStyle(
+                                            fontSize: 48),
+                                        text: "(" + widget.statistics.where((element) => element.isCorrect)
+                                            .length
+                                            .toString() + " / " +
+                                            widget.statistics.length.toString() +
+                                            ")\n"
+                                    ),
+                                    TextSpan(
+                                        style: TextStyle(fontSize: 32),
+                                        text: widget.statistics.map((e) =>
+                                            e.toString()).join()
+                                    ),
+                                  ]
                               ),
-                                children: [
-                                  TextSpan(
-                                      style: TextStyle(
-                                          fontSize: 48),
-                                      text: "(" + widget.statistics.where((element) => element.isCorrect)
-                                          .length
-                                          .toString() + " / " +
-                                          widget.statistics.length.toString() +
-                                          ")\n"
-                                  ),
-                                  TextSpan(
-                                      style: TextStyle(fontSize: 32),
-                                      text: widget.statistics.map((e) =>
-                                          e.toString()).join()
-                                  ),
-                                ]
                             ),
                           ),
                         )

@@ -179,7 +179,6 @@ class _MainMenuState extends State<MainMenu>
         );
       }),
       floatingActionButton: FloatingActionButton(
-        tooltip: 'Fade',
         child: Icon(Icons.settings),
         backgroundColor: const Color(0x99E57373),
         onPressed: () {
