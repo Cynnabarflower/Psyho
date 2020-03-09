@@ -98,7 +98,7 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
             images.insert(
                 this.answers.length, resetImages[math.Random().nextInt(2)]);
             this.answers.add(0);
-            this.answers.add(0);
+            this.answers.add(2);
             break;
           default:
             break;
