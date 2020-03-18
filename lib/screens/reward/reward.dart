@@ -51,7 +51,7 @@ class _RewardState extends State<Reward> {
                         Colors.amber[300],
                         Colors.amberAccent[400],
                         Colors.redAccent[200],
-                        Colors.lime[300]
+                        Colors.yellowAccent
                       ])),
                   Container(
                     alignment: Alignment.center,

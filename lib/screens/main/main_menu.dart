@@ -114,7 +114,7 @@ class _MainMenuState extends State<MainMenu>
                   onTap: (){
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => Game()),
+                      MaterialPageRoute(builder: (context) => Game(folderName: "assets/tBalloons/",)),
                     );
                   },
                   onTapDown: (tapDownDetails) {
