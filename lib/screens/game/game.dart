@@ -10,6 +10,8 @@ import 'dart:math' as math;
 import 'package:psycho_app/screens/game/Statistics.dart';
 import 'package:psycho_app/screens/reward/reward.dart';
 
+import 'AnswerButton.dart';
+
 class Game extends StatefulWidget {
   String folderName;
   int level = 0;
@@ -18,21 +20,13 @@ class Game extends StatefulWidget {
   _GameState createState() => _GameState();
 
   Game({this.folderName = 'assets/balloons/', this.level = 0}) {
-    if (!this.folderName.endsWith('/'))
-      this.folderName += "/";
+    if (!this.folderName.endsWith('/')) this.folderName += "/";
   }
 }
 
-enum ANSWERS {
-  SAME,
-  DIFFERENT,
-  NONE
-}
-
+enum ANSWERS { SAME, DIFFERENT, NONE }
 
 class _GameState extends State<Game> with TickerProviderStateMixin {
-
-
   List<AssetImage> images = [];
   int currentImageNumber = 0;
   int countDown = 3;
@@ -48,17 +42,22 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
   List<AssetImage> resetImages = [];
   AssetImage plusImage;
   Timer timer;
-  Offset handOffset = Offset(0, 0);
+  Offset handOffset = Offset(9999, 9999);
   Animation handTween;
+  final GlobalKey _screen = GlobalKey();
+  RenderBox _screenBox;
   final GlobalKey _buttonSame = GlobalKey();
   RenderBox _buttonSameBox;
   final GlobalKey _buttonDifferent = GlobalKey();
   RenderBox _buttonDifferentBox;
-  Offset _handOffset;
   bool runTutorial = true;
   bool nextImage = true;
   double dragDelta = 0;
-  double ROTATE_STEP = 3.0/255;
+  static const ROTATE_STEP = 3.0 / 255;
+  bool plus = false;
+  bool buttonsEnabled = true;
+  bool showPrevious = false;
+  Duration handDuration = Duration(milliseconds: 600);
 
   @override
   void initState() {
@@ -84,7 +83,6 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
   }
 
   Future _loadAssets({int level = 0}) async {
-
     final manifestContent =
         await DefaultAssetBundle.of(context).loadString('AssetManifest.json');
 
@@ -107,10 +105,9 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
     }
 
     DefaultAssetBundle.of(context)
-        .loadString(widget.folderName+'answers.txt')
+        .loadString(widget.folderName + 'answers.txt')
         .then((value) {
       List<String> answers = value.toString().split('\n');
-      int offset = 0;
       for (var answer in answers) {
         switch (answer.trim()) {
           case ";":
@@ -147,15 +144,23 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
     SystemChrome.setEnabledSystemUIOverlays([]);
     return Scaffold(
       resizeToAvoidBottomPadding: false,
-      body: Stack(
-          alignment: Alignment.center,
-          children: [
+      body: Stack(alignment: Alignment.center, children: [
         FutureBuilder(
             future: imagesLoaded,
             builder: (BuildContext context, AsyncSnapshot snapshot) {
               if (snapshot.connectionState == ConnectionState.done &&
                   countDown <= 0) {
-                if (nextImage) {
+                if (runTutorial) {
+                  showPrevious = !plus;
+                }
+                if (plus) {
+                  print('plus');
+                  buttonsEnabled = false;
+                  dragDelta = 0;
+                  updateTimer();
+                } else if (nextImage) {
+                  print('next');
+                  buttonsEnabled = answers[currentImageNumber] != ANSWERS.NONE;
                   dragDelta = 0;
                   startTime = new DateTime.now();
                   WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -163,128 +168,113 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
                     updateHand();
                     updateTimer();
                   });
+                } else {
+                  print('handUpdate');
                 }
                 return Stack(
-                  children: [Column(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: AbsorbPointer(
-                          absorbing: answers[currentImageNumber] == ANSWERS.NONE,
-                          child: Transform.rotate(
-                            angle: answers[currentImageNumber] == ANSWERS.NONE ? 0 : dragDelta*ROTATE_STEP,
-                            alignment: Alignment.bottomCenter,
-                            child: Container(
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: const Color(0xffffffff),
-                              ),
-                              child: GestureDetector(
-                                onHorizontalDragStart: (d) {print('drag start');},
-                                onHorizontalDragUpdate: (details) {
-                                  setState(() {
-                                    dragDelta += details.primaryDelta;
-                                    print(dragDelta);
-                                  });
-                                },
-                                onHorizontalDragEnd: (details) {
-                                  setState(() {
-
-                                    if (dragDelta < -50) {
-                                      choiceMade(ANSWERS.DIFFERENT);
-                                    } else if (dragDelta > 50) {
-                                      choiceMade(ANSWERS.SAME);
-                                    }
-                                    dragDelta = 0;
-                                  });
-                                },
-                                onTap: () => {print('tapped')},
-                                child: Image(
-                                  image: images[currentImageNumber],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: AbsorbPointer(
-                          absorbing: answers[currentImageNumber] == ANSWERS.NONE,
-                          child: ColorFiltered(
-                            colorFilter: answers[currentImageNumber] == ANSWERS.NONE ?
-                            ColorFilter.mode(const Color(0x99FFFFFF), BlendMode.lighten)
-                                : ColorFilter.mode(const Color(0x00000000), BlendMode.dst),
-                            child: Visibility(
-                              visible: true, //answers[currentImageNumber] != ANSWERS.NONE,
-                              child: Row(children: [
-                                Expanded(
-                                  key: _buttonDifferent,
-                                    flex: 1,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: const Color(0x88880000),
-                                      ),
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          choiceMade(ANSWERS.DIFFERENT);
-                                        },
-                                          child: Container(
-                                            padding: EdgeInsets.all(32),
-                                            margin:  EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0x99990000),
-                                              shape: BoxShape.circle
-                                            ),
-                                            child: Container(
-                                              child: Image(
-                                                  color: const Color(0x88880000),
-                                                  fit: BoxFit.contain,
-                                                  image: AssetImage('assets/close.png')
-                                              ),
-                                              alignment: Alignment.center,
-                                            ),
-                                          ),
-                                      ),
-                                    )),
-                                Expanded(
-                                  key: _buttonSame,
-                                    flex: 1,
-                                    child: Container(
+                  key: _screen,
+                  children: [
+                    Column(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: AbsorbPointer(
+                            absorbing: !buttonsEnabled,
+                            child: Stack(
+                              children: <Widget>[
+                                Transform.rotate(
+                                  angle: answers[currentImageNumber] ==
+                                          ANSWERS.NONE
+                                      ? 0
+                                      : dragDelta * ROTATE_STEP,
+                                  alignment: Alignment.bottomCenter,
+                                  child: Container(
                                     alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0x88008800),
-                                      ),
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          choiceMade(ANSWERS.SAME);
-                                        },
-                                        child: Container(
-                                          padding: EdgeInsets.all(32),
-                                          margin:  EdgeInsets.all(8),
-                                          alignment: Alignment.center,
-                                          decoration: BoxDecoration(
-                                              color: const Color(0x99009900),
-                                              shape: BoxShape.circle
-                                          ),
-                                          child: Container(
-                                            alignment: Alignment.center,
-                                            child: Image(
-                                                color: const Color(0x88008800),
-                                                fit: BoxFit.contain,
-                                                image: AssetImage('assets/correct.png')
-                                            ),
-                                          ),
-                                        )
-                                      ),
-                                    ))
-                              ]),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xffffffff),
+                                    ),
+                                    child: GestureDetector(
+                                      onHorizontalDragStart: (d) {
+                                        print('drag start');
+                                      },
+                                      onHorizontalDragUpdate: (details) {
+                                        setState(() {
+                                          dragDelta += details.primaryDelta;
+                                          print(dragDelta);
+                                        });
+                                      },
+                                      onHorizontalDragEnd: (details) {
+                                        setState(() {
+                                          if (dragDelta < -50) {
+                                            choiceMade(ANSWERS.DIFFERENT);
+                                          } else if (dragDelta > 50) {
+                                            choiceMade(ANSWERS.SAME);
+                                          }
+                                          dragDelta = 0;
+                                        });
+                                      },
+                                      onTap: () => {print('tapped')},
+                                      child: Image(
+                                          image: plus
+                                              ? plusImage
+                                              : images[currentImageNumber]),
+                                    ),
+                                  ),
+                                ),
+                                Visibility(
+                                  visible:
+                                      showPrevious && currentImageNumber > 0,
+                                  child: Align(
+                                    alignment: Alignment.topLeft,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Image(
+                                          width: 120,
+                                          height: 120,
+                                          image: currentImageNumber > 0
+                                              ? images[currentImageNumber - 1]
+                                              : plusImage),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      )
-                    ],
-                  ),
+                        Expanded(
+                          flex: 1,
+                          child: Visibility(
+                            visible: true,
+                            //answers[currentImageNumber] != ANSWERS.NONE,
+                            child: Row(children: [
+                              Expanded(
+                                  key: _buttonDifferent,
+                                  flex: 1,
+                                  child: AnswerButton(
+                                      tapped: () =>
+                                          {choiceMade(ANSWERS.DIFFERENT)},
+                                      enabled: buttonsEnabled,
+                                      image: AssetImage('assets/close.png'),
+                                      backgroundColor: Color(0x88880000),
+                                      shapeColor: Color(0x99990000),
+                                      shape: BoxShape.circle)),
+                              Expanded(
+                                  key: _buttonSame,
+                                  flex: 1,
+                                  child: AnswerButton(
+                                      tapped: () =>
+                                          choiceMade(ANSWERS.SAME),
+                                      enabled: buttonsEnabled,
+                                      image:
+                                          AssetImage('assets/correct.png'),
+                                      backgroundColor: Color(0x88008800),
+                                      shapeColor: Color(0x99009900),
+                                      shape: BoxShape.circle))
+                            ]),
+                          ),
+                        )
+                      ],
+                    ),
                     AnimatedPositioned(
                       child: Visibility(
                         visible: runTutorial,
@@ -298,8 +288,9 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
                       ),
                       left: handOffset.dx,
                       top: handOffset.dy,
-                      duration: Duration(milliseconds: 600),
-                    )],
+                      duration: handDuration,
+                    )
+                  ],
                 );
               } else {
                 controller.forward();
@@ -329,7 +320,7 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
                 );
               }
             }),
-        ]),
+      ]),
     );
   }
 
@@ -349,7 +340,7 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
         nextImage = true;
         currentImageNumber++;
         //if (runTutorial)
-          //updateHand();
+        //updateHand();
       });
     }
   }
@@ -357,16 +348,23 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
   void updateHand() {
     if (_buttonSameBox != null) {
       var off;
-      if (answers[currentImageNumber] == ANSWERS.SAME)
+      if (answers[currentImageNumber] == ANSWERS.SAME) {
         off = _buttonSameBox.localToGlobal(Offset.zero);
-      else if (answers[currentImageNumber] == ANSWERS.DIFFERENT)
+        handOffset = Offset(
+            off.dx - 0.455 * 200 + _buttonSameBox.size.width / 2,
+            off.dy - 0.1 * 200 + _buttonSameBox.size.height / 2);
+      } else if (answers[currentImageNumber] == ANSWERS.DIFFERENT) {
         off = _buttonDifferentBox.localToGlobal(Offset.zero);
-      else
-        off = Offset(0, 0);
-      handOffset =
-          Offset(off.dx - 0.455 * 200 + _buttonDifferentBox.size.width / 2,
-              off.dy - 0.1 * 200 + _buttonDifferentBox.size.height / 2
-          );
+        handOffset = Offset(
+            off.dx - 0.455 * 200 + _buttonDifferentBox.size.width / 2,
+            off.dy - 0.1 * 200 + _buttonDifferentBox.size.height / 2);
+      } else {
+        handOffset = Offset(
+            _screenBox.size.width / 2 - 0.455 * 200, _screenBox.size.height);
+      }
+    } else {
+      handOffset = Offset(
+          _screenBox.size.width / 2 - 0.455 * 200, _screenBox.size.height);
     }
     setState(() {
       nextImage = false;
@@ -374,6 +372,7 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
   }
 
   void updateBoxes() {
+    _screenBox = _screen.currentContext.findRenderObject();
     if (_buttonSame != null && _buttonSame.currentContext != null) {
       _buttonSameBox = _buttonSame.currentContext.findRenderObject();
       _buttonDifferentBox = _buttonDifferent.currentContext.findRenderObject();
@@ -381,15 +380,23 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
   }
 
   void updateTimer() {
-    if (timer != null)
-      timer.cancel();
-      timer = Timer(Duration(seconds: 3), () {
-      print('timer!');
+    if (timer != null) timer.cancel();
+
+    if (plus) {
+      timer = Timer(
+          Duration(seconds: 1),
+          () => setState(() {
+                plus = !plus;
+              }));
+      return;
+    }
+
+    timer = Timer(Duration(seconds: 3), () {
+      plus = !plus;
       if (runTutorial)
         choiceMade(answers[currentImageNumber]);
       else
         choiceMade(ANSWERS.NONE);
     });
   }
-
 }
