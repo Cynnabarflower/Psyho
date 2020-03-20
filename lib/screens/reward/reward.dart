@@ -20,6 +20,7 @@ class _RewardState extends State<Reward> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
   }
 
   @override
@@ -46,13 +47,18 @@ class _RewardState extends State<Reward> {
                 children: [
                   Positioned.fill(
                       child: Particles(
-                          60, [
+                          quan: 60,
+                          colors: [
                         Colors.orangeAccent[400],
                         Colors.amber[300],
                         Colors.amberAccent[400],
                         Colors.redAccent[200],
                         Colors.yellowAccent
-                      ])),
+                      ],
+                      duration:  Duration(milliseconds: 2000),
+                        minSize: 0.1,
+                        maxSize: 0.3,
+                      )),
                   Container(
                     alignment: Alignment.center,
                     decoration: BoxDecoration(

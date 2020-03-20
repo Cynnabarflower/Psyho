@@ -9,8 +9,10 @@ import 'dart:math' as math;
 
 import 'package:psycho_app/screens/game/Statistics.dart';
 import 'package:psycho_app/screens/reward/reward.dart';
+import 'package:psycho_app/screens/settings/settings.dart';
 
 import 'AnswerButton.dart';
+
 
 class Game extends StatefulWidget {
   String folderName;
@@ -58,10 +60,27 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
   bool buttonsEnabled = true;
   bool showPrevious = false;
   Duration handDuration = Duration(milliseconds: 600);
+  bool SHOW_HAND = true;
+  bool SHOW_PREVIOUS = true;
+
+  Future<bool> loadSettings() async {
+    Settings.read('tutorial').then((value) {
+      SHOW_HAND = value['showHand'];
+      SHOW_PREVIOUS = value['showTumb'];
+    });
+
+    Settings.read('main').then((value){
+      if (value['fullScreen'])
+        SystemChrome.setEnabledSystemUIOverlays([]);
+      else
+        SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
+    });
+  }
 
   @override
   void initState() {
-    imagesLoaded = _loadAssets().then((value) => true);
+
+    imagesLoaded = _loadAssets().then((value) => loadSettings());
     super.initState();
 
     controller = AnimationController(
@@ -82,7 +101,7 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
     });
   }
 
-  Future _loadAssets({int level = 0}) async {
+  Future<bool> _loadAssets({int level = 0}) async {
     final manifestContent =
         await DefaultAssetBundle.of(context).loadString('AssetManifest.json');
 
@@ -141,7 +160,7 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setEnabledSystemUIOverlays([]);
+
     return Scaffold(
       resizeToAvoidBottomPadding: false,
       body: Stack(alignment: Alignment.center, children: [
@@ -277,7 +296,7 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
                     ),
                     AnimatedPositioned(
                       child: Visibility(
-                        visible: runTutorial,
+                        visible: SHOW_HAND,
                         child: Container(
                           width: 200,
                           height: 200,

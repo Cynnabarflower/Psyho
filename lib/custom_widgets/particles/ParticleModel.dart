@@ -11,27 +11,30 @@ class ParticleModel {
   Random random;
   Color color;
   List<Color> colors;
+  Duration duration;
+  double minSize = 0;
+  double maxSize = 1;
 
-  ParticleModel(this.random, this.colors) {
+  ParticleModel(this.random, this.colors, this.duration, this.minSize, this.maxSize) {
     restart();
   }
 
   restart({Duration time = Duration.zero, Color setColor}) {
     final startPosition = Offset(-0.2 + 1.4 * random.nextDouble(), 1.2);
     final endPosition = Offset(-0.2 + 1.4 * random.nextDouble(), -0.2);
-    final duration = Duration(milliseconds: 2000 + random.nextInt(2000));
+    final liveTime = duration + Duration(milliseconds: random.nextInt((duration.inMilliseconds)));
     this.color = setColor == null ? colors[random.nextInt(colors.length)] :setColor;
 
     tween = MultiTrackTween([
       Track("x").add(
-          duration, Tween(begin: startPosition.dx, end: endPosition.dx),
+          liveTime, Tween(begin: startPosition.dx, end: endPosition.dx),
           curve: Curves.easeInOutSine),
       Track("y").add(
-          duration, Tween(begin: startPosition.dy, end: endPosition.dy),
+          liveTime, Tween(begin: startPosition.dy, end: endPosition.dy),
           curve: Curves.easeIn),
     ]);
-    animationProgress = AnimationProgress(duration: duration, startTime: time);
-    size = 0.2 + random.nextDouble() * 0.4;
+    animationProgress = AnimationProgress(duration: liveTime, startTime: time);
+    size = minSize + random.nextDouble()*(maxSize - minSize);
   }
 
   maintainRestart(Duration time) {
