@@ -12,6 +12,7 @@ import 'package:psycho_app/screens/reward/reward.dart';
 import 'package:psycho_app/screens/settings/settings.dart';
 
 import 'AnswerButton.dart';
+import 'dart:io' show Platform;
 
 
 class Game extends StatefulWidget {
@@ -321,7 +322,9 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
                       fit: BoxFit.contain,
                       child: RichText(
                         text: TextSpan(
-                            style: TextStyle(color: Colors.redAccent),
+                            style: TextStyle(
+                              color: Colors.redAccent,
+                            ),
                             text: countDown.toString()),
                       ),
                     ),
@@ -399,6 +402,7 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
   }
 
   void updateTimer() {
+
     if (timer != null) timer.cancel();
 
     if (plus) {

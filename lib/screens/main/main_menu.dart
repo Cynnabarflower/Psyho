@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +10,7 @@ import 'dart:math' as math;
 
 import 'package:psycho_app/custom_widgets/wave/wave.dart';
 import 'package:psycho_app/screens/game/game.dart';
+import 'package:psycho_app/screens/register/register.dart';
 import 'package:psycho_app/screens/settings/settings.dart';
 
 class MainMenu extends StatefulWidget {
@@ -20,6 +23,7 @@ class _MainMenuState extends State<MainMenu>
   AnimationController animationController;
   Animation<double> animation;
   List<Color> buttonsAlpha = List.filled(2, Color(0xffffffff));
+  String welcomeText = "";
 
   Future<bool> loadSettings() async {
     await Settings.read('main').then((value) {
@@ -27,6 +31,15 @@ class _MainMenuState extends State<MainMenu>
         SystemChrome.setEnabledSystemUIOverlays([]);
       else
         SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
+      if (value['welcomeText'] != null) {
+        welcomeText = value['welcomeText'];
+      }
+    });
+    await Settings.read('session').then((value) {
+      if (value['name'] != null)
+        welcomeText += value['name'];
+      else
+        welcomeText = null;
     });
     return true;
   }
@@ -78,6 +91,22 @@ class _MainMenuState extends State<MainMenu>
             fit: StackFit.expand,
             children: <Widget>[
               getWaves(),
+              welcomeText == null ? Container() : Align(
+                alignment: Alignment.topCenter,
+                child: SafeArea(
+                  child: Container(
+                    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    alignment: Alignment.topCenter,
+                    child: Text(welcomeText, style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.width/(max(welcomeText.length, 5)),
+                      color: Colors.yellow,
+                      shadows: [Shadow(color: Colors.deepOrangeAccent,
+                      offset: Offset(2, 2))]
+                      )
+                    ),
+                  ),
+                ),
+              ),
               Align(
                 alignment: orientation == Orientation.landscape ? Alignment(-0.5, -0.2) : Alignment(0, -0.4),
                 widthFactor: 0.15,
@@ -163,22 +192,53 @@ class _MainMenuState extends State<MainMenu>
                   ),
                 ),
               ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child:
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: RaisedButton(
+                          child: Icon(Icons.directions_run),
+                          color: Colors.redAccent,
+                          shape: CircleBorder(),
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => Register()),
+                            );
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: RaisedButton(
+                          child: Icon(Icons.settings),
+                          color: Colors.yellow,
+                          shape: CircleBorder(),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => Settings()),
+                            );
+                          },
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              )
             ],
           ),
         );
       }),
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.settings),
-        backgroundColor: Colors.amber.withOpacity(0.2),
-        mini: false,
-        elevation: 0,
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => Settings()),
-          );
-        },
-      ),
     );
   }
 

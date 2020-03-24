@@ -224,12 +224,12 @@ const RESOURCES = {
 "/assets/assets/tBalloons/answers.txt": "61a25611287b8ca768370cf883a5a52f",
 "/assets/FontManifest.json": "01700ba55b08a6141f33e168c4a6c22f",
 "/assets/fonts/MaterialIcons-Regular.ttf": "56d3ffdef7a25659eab6a68a3fbfaf16",
-"/assets/LICENSE": "b3f54d0d63394e2c7576551ade9d0e92",
+"/assets/LICENSE": "15729ab4dd9938dbd4547184c27f3dfc",
 "/assets/packages/cupertino_icons/assets/CupertinoIcons.ttf": "115e937bb829a890521f72d2e664b632",
 "/icons/Icon-192.png": "ac9a721a12bbc803b44f645561ecb1e1",
 "/icons/Icon-512.png": "96e752610906ba2a93c65f8abe1645f1",
 "/index.html": "12dd7a0c6472ff5a970a36c088e97362",
-"/main.dart.js": "19273dc8c950ec8aa2d0f3108b6c6a6f",
+"/main.dart.js": "fd2d64d83d722134c51cd53b22e01a39",
 "/manifest.json": "cdfbb64b1a1e17eb7f7854c6eb33a60b"
 };
 

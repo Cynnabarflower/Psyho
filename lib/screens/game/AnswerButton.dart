@@ -31,29 +31,24 @@ class _AnswerButtonState extends State<AnswerButton> {
 
   @override
   Widget build(BuildContext context) {
-    return ColorFiltered(
-      colorFilter: widget.enabled
-          ? ColorFilter.mode(const Color(0x00000000), BlendMode.dst)
-          : ColorFilter.mode(const Color(0x99FFFFFF), BlendMode.lighten),
-      child: Container(
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: widget.backgroundColor,
-        ),
-        child: GestureDetector(
-            onTap: widget.enabled ? widget.tapped : ()=>{},
-            child: Container(
-              padding: EdgeInsets.all(32),
-              margin: EdgeInsets.all(8),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(color: widget.shapeColor, shape: widget.shape),
-              child: Container(
-                alignment: Alignment.center,
-                child: Image(
-                    color: widget.backgroundColor, fit: BoxFit.contain, image: widget.image),
-              ),
-            )),
+    return Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: widget.backgroundColor.withOpacity(widget.enabled ? 0.6 : 0.3),
       ),
+      child: GestureDetector(
+          onTap: widget.enabled ? widget.tapped : ()=>{},
+          child: Container(
+            padding: EdgeInsets.all(32),
+            margin: EdgeInsets.all(8),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: widget.shapeColor.withOpacity(widget.enabled ? 0.6 : 0.3), shape: widget.shape),
+            child: Container(
+              alignment: Alignment.center,
+              child: Image(
+                  color: widget.backgroundColor, fit: BoxFit.contain, image: widget.image),
+            ),
+          )),
     );
   }
 }

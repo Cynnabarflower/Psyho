@@ -6,9 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 import 'package:psycho_app/custom_widgets/keyboard/Keyboard.dart';
+import 'package:psycho_app/screens/main/main_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const PARAMS = {
+
+var PARAMS = {
   "tutorial": {
     "showTumb": {
       "name": "Show previous picture",
@@ -26,7 +28,11 @@ const PARAMS = {
     }
   },
   "main": {
-    "password": {"name": "Settings password", "values": []},
+    "password": {
+      "name": "Settings password",
+      "values": [],
+      "langs": [KeyboardLangs.numeric.toString()]
+    },
     "showStats": {
       "name": "Show stats on reward screen",
       "values": [
@@ -40,10 +46,23 @@ const PARAMS = {
         {"yes": true},
         {"no": false}
       ]
+    },
+    "lang": {
+      "name": "Keyboard languages",
+      "values": [
+        {"Ru": [KeyboardLangs.cyrillic.toString()]},
+        {"En": [KeyboardLangs.latin.toString()]},
+        {"Ru&En": [KeyboardLangs.cyrillic.toString(), KeyboardLangs.latin.toString()]}
+      ]
+    },
+    "welcomeText" : {
+      "name": "Welcome text",
+      "values": [],
     }
   },
   "statistics": {}
 };
+
 
 class Settings extends StatefulWidget {
   @override
@@ -57,13 +76,14 @@ class Settings extends StatefulWidget {
     final prefs = await SharedPreferences.getInstance();
     final value = prefs.getString(key);
     Map<String, dynamic> settings = {};
-    PARAMS[key].forEach((key, value) {
-      var values = value['values'];
-      if (values != null && values.isNotEmpty)
-        settings[key] = value['values'][0].values.elementAt(0);
-      else
-        settings[key] = "";
-    });
+    if (PARAMS.containsKey(key))
+      PARAMS[key].forEach((key, value) {
+        var values = value['values'];
+        if (values != null && values.isNotEmpty)
+          settings[key] = value['values'][0].values.elementAt(0);
+        else
+          settings[key] = "";
+      });
     if (value != null) {
       json.decode(value).forEach((key, value) {
         settings[key] = value;
@@ -146,23 +166,35 @@ class _SettingsState extends State<Settings> {
                     ),
                   ));
                 else {
+                  print('password:' + password);
                   return Center(
-                    child: GestureDetector(
-                      onTap: () {Navigator.pop(context);},
-                      child: Container(
-                          alignment: Alignment.center,
-                          color: Colors.amber,
-                          padding: EdgeInsets.all(8),
+                    child: Stack(
+                      children: <Widget>[
+                        GestureDetector(
+                          onTap: () {Navigator.pop(context);},
                           child: Container(
-                            child: Container(
                               alignment: Alignment.center,
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Keyboard(
-                                      (val) { password == val ? setState(() {password = "";}) : "";},
-                                      maxLength: 4, showInputField: true,
-                              ),
-                            ),
-                          )),
+                              color: Colors.amber,
+                              padding: EdgeInsets.all(8)),
+                        ),
+                        Container(
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child:
+                              Keyboard(
+                                  onEdited: (val) { password == val ? setState(() {password = "";}) : "";},
+                                  initValue: "",
+                                  layouts: [
+                                    Layout.latin(showInputField: true ),
+                                    Layout.cyrillic(showInputField: true),
+                                    Layout.latin(showInputField: true, withDigits: true),
+                                    Layout.cyrillic(showInputField: true, withDigits: true),
+                                    Layout.numeric(showInputField: true)
+                                  ])
+                          ),
+                        )
+                      ],
                     ),
                   );
                 }
@@ -170,7 +202,11 @@ class _SettingsState extends State<Settings> {
                   return Container();
               }),
           onWillPop: () {
-            return new Future(() => true);
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => MainMenu()),
+            );
+            return new Future(() => false);
           },
         ),
       ),
@@ -207,10 +243,9 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Container(
         color: Colors.amber,
         alignment: Alignment.center,
-        child: FutureBuilder(
-            future: loaded,
+        child: LayoutBuilder(
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done)
+              if (list != null && list.isNotEmpty)
                 return ListView(
                     padding: EdgeInsets.symmetric(horizontal: 0, vertical: 8),
                     children: list);
@@ -227,7 +262,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    loaded = readSettings();
+    readSettings().then((value) => setState((){}));
   }
 
   Future<bool> readSettings() async {
@@ -237,7 +272,9 @@ class _SettingsPageState extends State<SettingsPage> {
     print(widget.cSettings);
     widget.map.forEach((key, value) {
       list.add(Param(key, value['name'], value['values'], widget._save,
-          widget.cSettings.containsKey(key) ? widget.cSettings[key] : null));
+          widget.cSettings[key] ?? (value['values'].isNotEmpty ?  value['values'] : "")
+        , value['langs']
+      ));
     });
     return true;
   }
@@ -249,11 +286,30 @@ class Param extends StatefulWidget {
   List<dynamic> args = [];
   Function _save;
   dynamic value;
+  List<Layout> layouts = [];
 
   @override
   _ParamState createState() => _ParamState();
 
-  Param(this.id, this.name, this.args, this._save, this.value) {}
+  Param(this.id, this.name, this.args, this._save, this.value, List<dynamic> langs) {
+    if (args.isEmpty) {
+      if (langs != null)
+      langs.forEach((element) {
+        var el = Layout.getKeyboardLangFromString(element);
+        switch (el) {
+          case KeyboardLangs.cyrillic: layouts.add(Layout.cyrillic()); break;
+          case KeyboardLangs.latin: layouts.add(Layout.latin()); break;
+          case KeyboardLangs.cyrillic_with_digits: layouts.add(Layout.cyrillic(withDigits: true)); break;
+          case KeyboardLangs.latin_with_digits: layouts.add(Layout.latin(withDigits: true)); break;
+          case KeyboardLangs.numeric: layouts.add(Layout.numeric()); break;
+          case KeyboardLangs.digits: layouts.add(Layout.digital());
+        }
+      });
+      else {
+      }
+    }
+
+  }
 }
 
 class _ParamState extends State<Param> {
@@ -271,7 +327,7 @@ class _ParamState extends State<Param> {
           arg.keys.elementAt(0),
           style: TextStyle(color: Colors.black),
         ));
-        isSelected.add(widget.value == arg.values.elementAt(0));
+        isSelected.add(json.encode(widget.value) == json.encode(arg.values.elementAt(0)));
       }
     } else {}
   }
@@ -285,6 +341,9 @@ class _ParamState extends State<Param> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           Row(
             mainAxisAlignment: editing ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
@@ -298,13 +357,18 @@ class _ParamState extends State<Param> {
               getInputWidget(),
             ],
           ),
-          editing ? Container(
-            child: Keyboard((value){
-              setState(() {
-                widget.value = value;
-                widget._save(widget.id, widget.value.trim());
-              });
-            }, maxLength: 4, showInputField: false),
+          editing && widget.layouts.isNotEmpty ?
+          Padding(
+            padding: EdgeInsets.all(8),
+            child: Keyboard(
+              initValue: widget.value,
+                onEdited: (value){
+                  setState(() {
+                    widget.value = value;
+                    widget._save(widget.id, widget.value);
+                  });
+                },
+                layouts: widget.layouts),
           ) : Container()
         ],
       ),
@@ -313,6 +377,7 @@ class _ParamState extends State<Param> {
 
   Widget getInputWidget() {
     if (widget.args.isEmpty) {
+      if (widget.layouts.isNotEmpty) {
       return Flexible(
         flex: 100,
         child: GestureDetector(
@@ -338,6 +403,40 @@ class _ParamState extends State<Param> {
           ),
         ),
       );
+      }
+      else {
+        return Flexible(
+          flex: 100,
+          child: GestureDetector(
+            onTap: () {setState(() {
+              editing = !editing;
+            });},
+            child: Container(
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+                color: Colors.orangeAccent,
+              ),
+              child: Container(
+                height: 40,
+                alignment: Alignment.center,
+                child: TextFormField(
+                  initialValue: isPassword && !editing ? widget.value.replaceAll(RegExp('[0-9]'), '*') : widget.value,
+                  onChanged: (value) {
+                    setState(() {
+                      widget.value = value;
+                      widget._save(widget.id, widget.value);
+                    });
+                  },
+                  style: TextStyle(
+                      fontSize: 30
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
     }
     if (widget.args.isEmpty && false) {
       return Container(
@@ -355,7 +454,7 @@ class _ParamState extends State<Param> {
               borderSide: BorderSide.none,
             ),
           ),
-          onChanged: (value) => widget._save(widget.id, value.trim()),
+          onChanged: (value) => widget._save(widget.id, value),
         ),
       );
     }
