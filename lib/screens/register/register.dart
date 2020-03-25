@@ -84,28 +84,32 @@ class _RegisterState extends State<Register> {
           ),
         ),
       ),
-      floatingActionButton: FlatButton(
-        color: Colors.amber[200],
-        child: RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(text: "OK", style: TextStyle(color: Colors.black))),
-        onPressed: () {
-          if (userName.isNotEmpty && editText.isNotEmpty) {
-            bDay = editText;
-          print(userName);
-          Settings.save('session', {'name': userName, 'bDay' : bDay});
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => MainMenu()),
-          );
-        } else if (editText.isNotEmpty) {
-            setState(() {
-              userName = editText;
-              editText = "";
-              qText = "How old are you?";
-            });
-          }
-          },
+      floatingActionButton: Container(
+        padding: EdgeInsets.symmetric(horizontal: 8),
+        margin: EdgeInsets.symmetric(horizontal: 8),
+        child: FlatButton(
+          color: Colors.amber[200],
+          child: RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(text: "OK", style: TextStyle(color: Colors.black))),
+          onPressed: () {
+            if (userName.isNotEmpty && editText.isNotEmpty) {
+              bDay = editText;
+            print(userName);
+            Settings.save('session', {'name': userName, 'bDay' : bDay});
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => MainMenu()),
+            );
+          } else if (editText.isNotEmpty) {
+              setState(() {
+                userName = editText;
+                editText = "";
+                qText = "How old are you?";
+              });
+            }
+            },
+        ),
       ),
     );
   }

@@ -12,9 +12,7 @@ class Keyboard extends StatefulWidget {
   bool isPassword;
   String initValue;
 
-  Keyboard({this.layouts, this.onEdited, this.initValue: ""}) {
-    print('');
-  }
+  Keyboard({this.layouts, this.onEdited, this.initValue: ""}) {}
 
   @override
   State createState() => _KeyboardState();
@@ -32,6 +30,7 @@ class _KeyboardState extends State<Keyboard> {
   Widget build(BuildContext context) {
     if (widget.layouts.isNotEmpty) {
       updateLayouts();
+      currentlayoutNumber %= widget.layouts.length;
       currentLayout = widget.layouts[currentlayoutNumber];
       return currentLayout;
     } else {
@@ -110,10 +109,12 @@ class Layout extends StatefulWidget {
   Function tapped;
   Function erase;
   double textHeightPercent = 0.2;
+  double textSizePercent = 0.8;
 
   Layout(
       {
         this.textHeightPercent = 0.2,
+        this.textSizePercent = 0.8,
       this.maxLength = 999,
       this.showInputField = false,
       this.isPassword = false,
@@ -155,6 +156,7 @@ class Layout extends StatefulWidget {
       {
         bool withDigits = false,
         this.textHeightPercent = 0.2,
+        this.textSizePercent = 0.8,
         this.maxLength = 999,
         this.showInputField = false,
         this.isPassword = false,
@@ -169,6 +171,7 @@ class Layout extends StatefulWidget {
       {
         bool withDigits = false,
         this.textHeightPercent = 0.2,
+        this.textSizePercent = 0.8,
         this.maxLength = 999,
         this.showInputField = false,
         this.isPassword = false,
@@ -619,14 +622,13 @@ class _KeyboardLayoutState extends State<Layout> {
             Column kb;
             if (h.isFinite) {
               textHeight = h * widget.textHeightPercent;
-              h -= textHeight*1.03 + 2;
+              h -= textHeight + 2;
               kb = widget.keyBuilder(w, h);
             } else {
               kb = widget.keyBuilder(w, h);
               textHeight = w * widget.textHeightPercent * 16/9;
             }
-
-            textSize = min(textHeight, w / (editText.length) * 1.0);
+            textSize = min(textHeight * widget.textSizePercent, w / (editText.length) * 1.0);
             return Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
