@@ -46,7 +46,7 @@ class _AnswerButtonState extends State<AnswerButton> {
             child: Container(
               alignment: Alignment.center,
               child: Image(
-                  color: widget.backgroundColor, fit: BoxFit.contain, image: widget.image),
+                  color: widget.backgroundColor.withOpacity(widget.enabled ? 0.6 : 0.3), fit: BoxFit.contain, image: widget.image),
             ),
           )),
     );

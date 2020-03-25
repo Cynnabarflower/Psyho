@@ -4,19 +4,34 @@ import 'package:flutter/services.dart';
 import 'package:psycho_app/custom_widgets/particles/Particles.dart';
 import 'package:psycho_app/screens/game/Statistics.dart';
 import 'package:psycho_app/screens/main/main_menu.dart';
+import 'package:psycho_app/screens/settings/settings.dart';
 
 class Reward extends StatefulWidget {
 
   List<Statistics> statistics;
+  bool showStats = false;
 
   @override
   _RewardState createState() => _RewardState();
 
-  Reward(this.statistics);
+
+  Future<bool> loadSettings() async {
+    await Settings.read('main').then((value) {
+        showStats = value['showStats'];
+    });
+    return true;
+  }
+
+
+  Reward(this.statistics) {
+    loadSettings();
+  }
 
 }
 
 class _RewardState extends State<Reward> {
+
+
   @override
   void initState() {
     super.initState();
@@ -30,6 +45,7 @@ class _RewardState extends State<Reward> {
 
   @override
   Widget build(BuildContext context) {
+    bool showStatas = widget.showStats;
     SystemChrome.setEnabledSystemUIOverlays([]);
     return Scaffold(
       resizeToAvoidBottomPadding: false,
@@ -79,7 +95,7 @@ class _RewardState extends State<Reward> {
                         Image(
                           image: AssetImage("assets/cup.png"),
                         ),
-                        Container(
+                        showStatas ? Container(
                           height: 300,
                           alignment: Alignment.center,
                           child: FittedBox(
@@ -112,7 +128,7 @@ class _RewardState extends State<Reward> {
                               ),
                             ),
                           ),
-                        )
+                        ) : Container()
                       ],
                     ),
                   )

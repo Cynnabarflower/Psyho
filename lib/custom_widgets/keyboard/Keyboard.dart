@@ -628,7 +628,9 @@ class _KeyboardLayoutState extends State<Layout> {
               kb = widget.keyBuilder(w, h);
               textHeight = w * widget.textHeightPercent * 16/9;
             }
-            textSize = min(textHeight * widget.textSizePercent, w / (editText.length) * 1.0);
+            textSize = min(textHeight * widget.textSizePercent, w / (
+                1.3 * editText.length - editText.replaceAll(RegExp("([ШЩМЖЫQWM])"), "").length * 0.3
+            ) * 1.0);
             return Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -760,6 +762,9 @@ class _KeyboardButtonState extends State<_KeyboardButton> {
       double borderRadius: 8,
       double fontSize: 28,
       double iconSize: 28}) {
+
+    fontSize = fontSize ?? min(s.value.width, s.value.height);
+
     return ValueListenableBuilder(
       valueListenable: s,
       builder: (context, value, child) => SizedBox(
