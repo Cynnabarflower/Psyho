@@ -19,6 +19,7 @@ class _RegisterState extends State<Register> {
   String editText = "";
   String qText = "What's your name?";
   var langs = [];
+  Keyboard keyboard;
 
   Future<bool> loadSettings() async {
     await Settings.read('main').then((value) {
@@ -37,6 +38,7 @@ class _RegisterState extends State<Register> {
 
   @override
   void initState() {
+    editText = "";
     loadSettings().then((value) => setState((){}));
     super.initState();
 /*    SystemChrome.setEnabledSystemUIOverlays([]);
@@ -50,6 +52,22 @@ class _RegisterState extends State<Register> {
 
   @override
   Widget build(BuildContext context) {
+
+    keyboard = Keyboard(
+        onEdited: (value) {
+          editText = value.trim();
+          value = userName.isEmpty ? editText.substring(0, editText.length < 25 ? editText.length : 25) : editText.substring(0, editText.length < 2 ? editText.length : 2);
+          keyboard.setEditText(value);
+          print(value);
+         },
+        initValue: "",
+        layouts:
+        userName.isEmpty ? (
+            (langs.contains(KeyboardLangs.latin) ? [Layout.latin(showInputField: true)] : List<Layout>(0)) +
+                (langs.contains(KeyboardLangs.cyrillic) ? [Layout.cyrillic(showInputField: true,)] : List<Layout>(0))
+        ) : [Layout.numeric(showInputField: true)]
+    );
+
     return Scaffold(
       resizeToAvoidBottomPadding: false,
       body: Container(
@@ -69,17 +87,7 @@ class _RegisterState extends State<Register> {
                       color: Colors.redAccent),
                 ),
               ),
-              Keyboard(
-                  onEdited: (value) {
-                      editText = value.trim();
-                  },
-                  initValue: editText,
-                  layouts:
-                  userName.isEmpty ? (
-                  (langs.contains(KeyboardLangs.latin) ? [Layout.latin(showInputField: true)] : List<Layout>(0)) +
-                      (langs.contains(KeyboardLangs.cyrillic) ? [Layout.cyrillic(showInputField: true,)] : List<Layout>(0))
-                  ) : [Layout.numeric(showInputField: true)]
-              )
+              keyboard
             ],
           ),
         ),
@@ -103,6 +111,9 @@ class _RegisterState extends State<Register> {
             );
           } else if (editText.isNotEmpty) {
               setState(() {
+                if (keyboard != null) {
+                  keyboard.setEditText('');
+                }
                 userName = editText;
                 editText = "";
                 qText = "How old are you?";
