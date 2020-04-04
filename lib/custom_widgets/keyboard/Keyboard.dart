@@ -13,9 +13,11 @@ class Keyboard extends StatefulWidget {
   Function onEdited;
   bool showInputField;
   bool isPassword;
+  Widget child;
+  bool visible;
 
-  Keyboard({this.layouts, this.onEdited, initValue: ""}) {
-    _editText = initValue;
+  Keyboard({this.layouts, this.onEdited, initValue = "", this.child, this.visible = true, this.showInputField = null}) {
+    _editText = initValue.toString();
   }
 
   setEditText(editText) {
@@ -36,6 +38,31 @@ class _KeyboardState extends State<Keyboard> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.child != null) {
+      return Stack(
+        children: [
+          widget.child,
+          widget.visible ?
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  var size = MediaQuery.of(context).size;
+                  w = size.width;
+                  h = size.height * 2/3;
+                  return SizedBox(
+                    width: w,
+                     height: h,
+                     child:  _getKeyboard()
+                  );
+                },
+              )
+              : Container()
+        ],
+      );
+    } else return widget.visible ? _getKeyboard() : Container();
+
+  }
+
+  Widget _getKeyboard() {
     if (widget.layouts.isNotEmpty) {
       updateLayouts();
       currentlayoutNumber %= widget.layouts.length;
@@ -53,6 +80,8 @@ class _KeyboardState extends State<Keyboard> {
           (val) {setState(() {
         widget.onEdited(val);
       });};
+
+      element.showInputField = widget.showInputField ?? element.showInputField;
       element.canChange = widget.layouts.length > 1;
     });
   }
@@ -103,7 +132,7 @@ class Layout extends StatefulWidget {
   AlignmentGeometry alignment;
   Function changeLayout;
   bool canChange = false;
-  Function keyBuilder;
+  List<KeyBuilder> keyBuilders = [];
   Function onEdited;
   Function tapped;
   Function erase;
@@ -119,9 +148,9 @@ class Layout extends StatefulWidget {
       this.isPassword = false,
       this.padding,
       this.margin,
-      this.canChange,
+      this.canChange = false,
       this.alignment,
-      this.keyBuilder,
+      this.keyBuilders,
       });
 
   Layout.numeric(
@@ -132,9 +161,9 @@ class Layout extends StatefulWidget {
       this.isPassword = false,
       this.padding,
       this.margin,
-      this.canChange,
+      this.canChange = false,
       this.alignment}) {
-    this.keyBuilder = getNumericKeyboard;
+    keyBuilders.add(KeyBuilder(getNumericKeyboard));
   }
 
 
@@ -146,9 +175,9 @@ class Layout extends StatefulWidget {
         this.isPassword = false,
         this.padding,
         this.margin,
-        this.canChange,
+        this.canChange = false,
         this.alignment}) {
-    this.keyBuilder = getDigitsLine;
+    keyBuilders.add(KeyBuilder(getDigitsLine));
   }
 
   Layout.latin(
@@ -161,9 +190,9 @@ class Layout extends StatefulWidget {
         this.isPassword = false,
         this.padding,
         this.margin,
-        this.canChange,
+        this.canChange = false,
         this.alignment}) {
-    this.keyBuilder = withDigits ? getLatinKeyboardWithDigits : getLatinKeyboard;
+    keyBuilders.add(KeyBuilder(withDigits ? getLatinKeyboardWithDigits : getLatinKeyboard));
   }
 
   Layout.cyrillic(
@@ -176,15 +205,90 @@ class Layout extends StatefulWidget {
         this.isPassword = false,
         this.padding,
         this.margin,
-        this.canChange,
+        this.canChange = false,
         this.alignment}) {
-    this.keyBuilder = withDigits ? getCyrillicKeyboardWithDigits :   getCyrillicKeyboard;
+    keyBuilders.add(KeyBuilder(withDigits ? getCyrillicKeyboardWithDigits :   getCyrillicKeyboard));
   }
 
-  Column getNumericKeyboard(double w, double h, context) {
+  Layout addKeyBuilder(dynamic kb, {double flex = -1, int index = -1}) {
+    if (index == -1)
+      index = keyBuilders.length;
+    if (kb is KeyBuilder) {
+      if (flex >= 0)
+        keyBuilders.insert(index, KeyBuilder(kb.keyBuilder, flex: flex));
+      else
+        keyBuilders.insert(index, kb);
+    } else if (kb is Function) {
+      if (flex >= 0)
+        keyBuilders.insert(index, KeyBuilder(kb, flex: flex));
+      else
+        keyBuilders.insert(index, KeyBuilder(kb));
+    } else if (kb is Layout) {
+      if (flex >= 0)
+        keyBuilders.insert(index, KeyBuilder(kb.keyBuilders[0].keyBuilder, flex: flex));
+      else
+        keyBuilders.insert(index, kb.keyBuilders[0]);
+    }
+
+    return this;
+  }
+
+  static Function getStringKeyBuilder(List<List<dynamic>> keys, {double keyRatio = 1, strictResize = true}) {
+    return (double w, double h, context, Layout widget) {
+      var maxWidth = 0;
+      keys.forEach((element) { maxWidth = max(maxWidth, element.fold(0, (p, e) => p + e.length)); });
+      var params = _getFitParams(maxWidth, keys.length, w, h, ratio: keyRatio, strict: strictResize, context: context);
+      var size = params.key;
+      double ratio = params.value;
+      List<Widget> children = [];
+      for (var line in keys)
+        children.add(getButtonListLine(widget.tapped, vals: line, size: size, borderRadius: 8, margin: 4, ratio: ratio, fontSize: 0.5, iconSize: 0.5));
+      return Column(
+        children: children,
+      );
+
+    };
+  }
+
+  static getButtonListLine(Function tapped,
+      {List<dynamic> vals,
+        double ratio,
+        double margin: -1,
+        double borderRadius: -1,
+        double fontSize: -1,
+        double iconSize = -1,
+        Size size}) {
+    List<_KeyboardButton> buttons = [];
+    for (var i = 0; i < vals.length; i++) {
+      var adjSize = Size(size.width * vals[i].length, size.height);
+      buttons.add(_KeyboardButton(tapped, size: adjSize, text: vals[i]));
+    }
+    return getButtonsLine(buttons, ratio: ratio, margin: margin, borderRadius: borderRadius, fontSize: fontSize, iconSize: iconSize);
+  }
+
+  static getButtonSymbolLine(Function tapped,
+      {String symbols,
+        double ratio,
+        double margin: -1,
+        double borderRadius: -1,
+        double fontSize: -1,
+        double iconSize = -1,
+        Size size}) {
+    List<_KeyboardButton> buttons = [];
+    for (var i = 0; i < symbols.length; i++)
+      buttons.add(_KeyboardButton(tapped, size: size, text: symbols[i]));
+    return getButtonsLine(buttons, ratio: ratio, margin: margin, borderRadius: borderRadius, fontSize: fontSize, iconSize: iconSize, size: size);
+  }
+
+  static Column getNumericKeyboard(double w, double h, context, Layout widget) {
+    var erase = widget.erase;
+    var tapped = widget.tapped;
+    var canChange = widget.canChange;
+
     var params = _getFitParams(3, 4, w, h, ratio: 1, strict: true, context: context);
     var size = params.key;
     double ratio = params.value;
+
     return
     Column (
         children: [
@@ -192,33 +296,36 @@ class Layout extends StatefulWidget {
         _KeyboardButton(tapped, text: '1'),
         _KeyboardButton(tapped, text: '2'),
         _KeyboardButton(tapped, text: '3')
-      ], borderRadius: 8, margin: 4, size: size, ratio: ratio),
+      ], borderRadius: 8, margin: 4, size: size, ratio: ratio, fontSize: 0.5),
       getButtonsLine([
         _KeyboardButton(tapped, text: '4'),
         _KeyboardButton(tapped, text: '5'),
         _KeyboardButton(tapped, text: '6')
-      ], borderRadius: 8, margin: 4, size: size, ratio: ratio),
+      ], borderRadius: 8, margin: 4, size: size, ratio: ratio, fontSize: 0.5),
       getButtonsLine([
         _KeyboardButton(tapped, text: '7'),
         _KeyboardButton(tapped, text: '8'),
         _KeyboardButton(tapped, text: '9')
-      ], borderRadius: 8, margin: 4, size: size, ratio: ratio),
+      ], borderRadius: 8, margin: 4, size: size, ratio: ratio, fontSize: 0.5),
       getButtonsLine(
           (canChange
               ? [
-            _KeyboardButton((val) => changeLayout(),
+            _KeyboardButton((val) => widget.changeLayout(),
                 iconData: Icons.language, size: size)
           ]
               : (List<_KeyboardButton>())) +
           [
-        _KeyboardButton(tapped, text: '0', size: Size(size.width * (canChange ? 1 : 2), size.height)),
+        _KeyboardButton(tapped, text: '0', size: Size(size.width * (canChange ? 1 : 2), size.height), fontSize:  min(size.width, size.height) * 0.5),
         _KeyboardButton(erase,
             iconData: Icons.clear, size: size)
-      ], ratio: ratio, borderRadius: 8, margin: 4)
+      ], ratio: ratio, borderRadius: 8, margin: 4, fontSize: 0.5, iconSize:  min(size.width, size.height) * 0.5)
     ]);
   }
 
-  Column getCyrillicKeyboard(double w, double h, context) {
+  static Column getCyrillicKeyboard(double w, double h, context, Layout widget) {
+    var erase = widget.erase;
+    var tapped = widget.tapped;
+    var canChange = widget.canChange;
     var params = _getFitParams(12, 3, w, h, ratio: 3/4, context: context);
     var buttonSize = params.key;
     double rowRatio = params.value;
@@ -229,22 +336,24 @@ class Layout extends StatefulWidget {
     Column(
       children: [
       getButtonsLine([
-        _KeyboardButton(tapped, text: 'Й', fontSize: 23),
-        _KeyboardButton(tapped, text: 'Ц', fontSize: 24),
-        _KeyboardButton(tapped, text: 'У', fontSize: 24),
-        _KeyboardButton(tapped, text: 'К', fontSize: 24),
-        _KeyboardButton(tapped, text: 'Е', fontSize: 24),
-        _KeyboardButton(tapped, text: 'Н', fontSize: 24),
-        _KeyboardButton(tapped, text: 'Г', fontSize: 24),
-        _KeyboardButton(tapped, text: 'Ш', fontSize: 24),
-        _KeyboardButton(tapped, text: 'Щ', fontSize: 24),
-        _KeyboardButton(tapped, text: 'З', fontSize: 24),
-        _KeyboardButton(tapped, text: 'Х', fontSize: 24),
-        _KeyboardButton(tapped, text: 'Ъ', fontSize: 24)
+        _KeyboardButton(tapped, text: 'Й'),
+        _KeyboardButton(tapped, text: 'Ц'),
+        _KeyboardButton(tapped, text: 'У'),
+        _KeyboardButton(tapped, text: 'К'),
+        _KeyboardButton(tapped, text: 'Е'),
+        _KeyboardButton(tapped, text: 'Н'),
+        _KeyboardButton(tapped, text: 'Г'),
+        _KeyboardButton(tapped, text: 'Ш'),
+        _KeyboardButton(tapped, text: 'Щ'),
+        _KeyboardButton(tapped, text: 'З'),
+        _KeyboardButton(tapped, text: 'Х'),
+        _KeyboardButton(tapped, text: 'Ъ')
       ],
           margin: margin,
           borderRadius: borderRadius,
           ratio: rowRatio,
+          fontSize: 0.5,
+          iconSize: 1,
           size: buttonSize),
       getButtonsLine([
         _KeyboardButton(tapped, text: 'Ф'),
@@ -262,12 +371,12 @@ class Layout extends StatefulWidget {
           margin: margin,
           borderRadius: borderRadius,
           ratio: rowRatio,
-          fontSize: 24,
+          fontSize: 0.5,
           size: buttonSize),
       getButtonsLine(
           ((canChange
                   ? [
-                      _KeyboardButton((val) => changeLayout(),
+                      _KeyboardButton((val) => widget.changeLayout(),
                           iconData: Icons.language)
                     ]
                   : List<_KeyboardButton>(0))) +
@@ -281,17 +390,21 @@ class Layout extends StatefulWidget {
                 _KeyboardButton(tapped, text: 'Ь'),
                 _KeyboardButton(tapped, text: 'Б'),
                 _KeyboardButton(tapped, text: 'Ю'),
-                _KeyboardButton(erase, iconData: Icons.cancel, iconSize: 24)
+                _KeyboardButton(erase, iconData: Icons.cancel)
               ],
           margin: margin,
           borderRadius: borderRadius,
           ratio: rowRatio,
-          fontSize: 24,
+          fontSize: 0.5,
+          iconSize: 0.5,
           size: buttonSize)
     ]);
   }
 
-  Column getCyrillicKeyboardWithDigits(double w, double h, context) {
+  static Column getCyrillicKeyboardWithDigits(double w, double h, context, Layout widget) {
+    var erase = widget.erase;
+    var tapped = widget.tapped;
+    var canChange = widget.canChange;
     var params = _getFitParams(12, 4, w, h, ratio: 3/4, context: context);
     var buttonSize = params.key;
     double rowRatio = params.value;
@@ -313,7 +426,9 @@ class Layout extends StatefulWidget {
         _KeyboardButton(tapped, text: '9'),
         _KeyboardButton(tapped, text: '0')
       ],
+
           ratio: rowRatio * 12/10,
+          fontSize: 0.5,
           margin: margin,
           borderRadius: borderRadius,
           size: Size(buttonSize.width * 12/10, buttonSize.height)),
@@ -334,7 +449,7 @@ class Layout extends StatefulWidget {
           margin: margin,
           borderRadius: borderRadius,
           ratio: rowRatio,
-          fontSize: 24,
+          fontSize: 0.5,
           size: buttonSize),
       getButtonsLine([
         _KeyboardButton(tapped, text: 'Ф'),
@@ -352,12 +467,12 @@ class Layout extends StatefulWidget {
           margin: margin,
           borderRadius: borderRadius,
           ratio: rowRatio,
-          fontSize: 24,
+          fontSize: 0.5,
           size: buttonSize),
       getButtonsLine(
           ((canChange
               ? [
-            _KeyboardButton((val) => changeLayout(),
+            _KeyboardButton((val) => widget.changeLayout(),
                 iconData: Icons.language)
           ]
               : List<_KeyboardButton>(0))) +
@@ -376,19 +491,23 @@ class Layout extends StatefulWidget {
           margin: margin,
           borderRadius: borderRadius,
           ratio: rowRatio,
-          fontSize: 24,
+          fontSize: 0.5,
           size: buttonSize)
     ]);
   }
 
 
-  List<Widget> getDigitsLine(double w, double h, context) {
+  static Column getDigitsLine(double w, double h, context, Layout widget) {
+    var tapped = widget.tapped;
     var params = _getFitParams(10, 1, w, h, ratio: 3/4, context: context);
     var buttonSize = params.key;
     double rowRatio = params.value;
     double borderRadius = min(buttonSize.width, buttonSize.height) * 0.1;
     double margin = min(buttonSize.width, buttonSize.height) * 0.05;
-    return [
+    return
+
+      Column (
+        children: [
             getButtonsLine([
               _KeyboardButton(tapped, text: '1'),
               _KeyboardButton(tapped, text: '2'),
@@ -401,8 +520,9 @@ class Layout extends StatefulWidget {
               _KeyboardButton(tapped, text: '9'),
               _KeyboardButton(tapped, text: '0'),
             ],
-                margin: margin, borderRadius: borderRadius, ratio: rowRatio, size: buttonSize)
-          ];
+                margin: margin, borderRadius: borderRadius, ratio: rowRatio, size: buttonSize, fontSize: 0.5)
+          ]
+      );
   }
 
   static MapEntry<Size, double> _getFitParams(
@@ -426,12 +546,23 @@ class Layout extends StatefulWidget {
       double margin: -1,
       double borderRadius: -1,
       double fontSize: -1,
+        double iconSize = -1,
       Size size}) {
     ratio = ratio ?? buttons.length * (size == null ? 1.0 : size.aspectRatio);
     buttons.forEach((_KeyboardButton element) {
       if (margin >= 0) element.margin = margin;
       if (borderRadius > 0) element.borderRadius = borderRadius;
-      if (fontSize > 0) element.fontSize = fontSize;
+      if (fontSize > 1)
+        element.fontSize = fontSize;
+      else if (size != null)
+        if (fontSize > 0)
+          element.fontSize = min(size.width, size.height) * fontSize;
+      if (iconSize > 1)
+        element.iconSize = iconSize;
+      else if (size != null)
+        if (iconSize > 0)
+          element.iconSize = min(size.width, size.height) * iconSize;
+
       if (size != null) element.size = size;
     });
 
@@ -446,7 +577,10 @@ class Layout extends StatefulWidget {
   }
 
 
-  Column getLatinKeyboardWithDigits(double w, double h, context) {
+  static Column getLatinKeyboardWithDigits(double w, double h, context, Layout widget) {
+    var erase = widget.erase;
+    var tapped = widget.tapped;
+    var canChange = widget.canChange;
     var params = _getFitParams(10, 4, w, h, ratio: 3/4, context: context);
     var buttonSize = params.key;
     double rowRatio = params.value;
@@ -470,6 +604,7 @@ class Layout extends StatefulWidget {
           ratio: rowRatio,
           margin: margin,
           borderRadius: borderRadius,
+          fontSize: 0.5,
           size: buttonSize),
       getButtonsLine([
         _KeyboardButton(tapped, text: 'Q'),
@@ -485,6 +620,7 @@ class Layout extends StatefulWidget {
       ],
           size: buttonSize,
           ratio: rowRatio,
+          fontSize: 0.5,
           borderRadius: borderRadius,
           margin: margin),
       getButtonsLine([
@@ -501,11 +637,12 @@ class Layout extends StatefulWidget {
           ratio: rowRatio,
           borderRadius: borderRadius,
           margin: margin,
+          fontSize: 0.5,
           size: buttonSize),
       getButtonsLine(
           (canChange
                   ? [
-                      _KeyboardButton((val) => changeLayout(),
+                      _KeyboardButton((val) => widget.changeLayout(),
                           iconData: Icons.language)
                     ]
                   : (List<_KeyboardButton>())) +
@@ -522,12 +659,16 @@ class Layout extends StatefulWidget {
           ratio: rowRatio,
           borderRadius: borderRadius,
           margin: margin,
+          fontSize: 0.5,
           size: buttonSize)
     ]);
   }
 
 
-  Column getLatinKeyboard(double w, double h, context) {
+  static Column getLatinKeyboard(double w, double h, context, Layout widget) {
+    var erase = widget.erase;
+    var tapped = widget.tapped;
+    var canChange = widget.canChange;
     var params = _getFitParams(10, 3, w, h, ratio: 3/4, context: context);
     var buttonSize = params.key;
     double rowRatio = params.value;
@@ -551,6 +692,7 @@ class Layout extends StatefulWidget {
           size: buttonSize,
           ratio: rowRatio,
           borderRadius: borderRadius,
+          fontSize: 0.5,
           margin: margin),
       getButtonsLine([
         _KeyboardButton(tapped, text: 'A'),
@@ -565,12 +707,13 @@ class Layout extends StatefulWidget {
       ],
           ratio: rowRatio,
           borderRadius: borderRadius,
+          fontSize: 0.5,
           margin: margin,
           size: buttonSize),
       getButtonsLine(
           (canChange
               ? [
-            _KeyboardButton((val) => changeLayout(),
+            _KeyboardButton((val) => widget.changeLayout(),
                 iconData: Icons.language)
           ]
               : (List<_KeyboardButton>())) +
@@ -586,6 +729,7 @@ class Layout extends StatefulWidget {
               ],
           ratio: rowRatio,
           borderRadius: borderRadius,
+          fontSize: 0.5,
           margin: margin,
           size: buttonSize)
     ]);
@@ -603,7 +747,6 @@ class _KeyboardLayoutState extends State<Layout> {
 
   @override
   Widget build(BuildContext context) {
-
     widget.erase = erase;
     widget.tapped = tapped;
     return Expanded(
@@ -618,13 +761,26 @@ class _KeyboardLayoutState extends State<Layout> {
           LayoutBuilder(builder: (context, constraints) {
             w = constraints.maxWidth;
             h = constraints.maxHeight;
+            double totalFlex = widget.keyBuilders.fold(0, (previousValue, element) => previousValue + element.flex);
             Column kb;
             if (h.isFinite) {
               textHeight = h * widget.textHeightPercent;
               h -= textHeight + 2;
-              kb = widget.keyBuilder(w, h, context);
+              kb = Column(
+                children: widget.keyBuilders.fold([], (previousValue, element) {
+                  previousValue.add(element.keyBuilder(w, h * element.flex/totalFlex, context, widget));
+                  return previousValue;
+                })
+              );
             } else {
-              kb = widget.keyBuilder(w, h, context);
+              kb = Column(
+                  children: widget.keyBuilders.fold([], (previousValue, element) {
+                    previousValue.add(element.keyBuilder(
+                        w, h * element.flex / totalFlex, context, widget));
+                    return previousValue;
+                  }
+                  )
+              );
               textHeight = w * widget.textHeightPercent * 16/9;
             }
             textSize = min(textHeight * widget.textSizePercent, w / (
@@ -798,15 +954,23 @@ class _KeyboardButtonState extends State<_KeyboardButton> {
                 color: Colors.redAccent.withOpacity(pressed ? 0.66 : 1)),
             child: FittedBox(
               fit: BoxFit.fill,
-              child: icon == null
+              child: icon == null && text != ' '
                   ? Text(text,
                       style: TextStyle(fontSize: fontSize),
                       textAlign: TextAlign.center)
-                  : Icon(icon, size: iconSize),
+                  : Icon(icon == null ? Icons.space_bar: icon, size: iconSize),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+class KeyBuilder {
+  Function keyBuilder;
+  double flex = 1;
+
+  KeyBuilder(this.keyBuilder, {this.flex = 1});
+
 }

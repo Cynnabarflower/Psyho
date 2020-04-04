@@ -235,6 +235,8 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   List<Widget> list = [];
   Future<bool> loaded;
+  String editText = '';
+  Param currentParam;
 
   @override
   Widget build(BuildContext context) {
@@ -246,9 +248,37 @@ class _SettingsPageState extends State<SettingsPage> {
         child: LayoutBuilder(
             builder: (context, snapshot) {
               if (list != null && list.isNotEmpty)
-                return ListView(
-                    padding: EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-                    children: list);
+                return Stack(
+                  children: <Widget>[
+                    ListView(
+                        padding: EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                        children: fillSettings()),
+
+                    LayoutBuilder(
+                      builder: (context, constraints) => currentParam == null ? Container(width: 0,height: 0,) : Container(
+                        alignment: Alignment.bottomCenter,
+                        child: SizedBox(
+                          width: MediaQuery.of(context).size.width,
+                          height: MediaQuery.of(context).size.height,
+                          child: Keyboard(
+                            showInputField: true,
+                            layouts: currentParam.layouts,
+                            onEdited: (val)  {
+                              setState(() {
+                                currentParam.value = val;
+                                widget._save(currentParam.id, currentParam.value);
+                                fillSettings();
+                              });
+                                print(val);
+                            },
+                            initValue: currentParam == null ? '' : currentParam.value.toString(),
+                          ),
+                        ),
+                      ),
+                    )
+
+                  ],
+                );
               else
                 return Container();
             }),
@@ -270,13 +300,21 @@ class _SettingsPageState extends State<SettingsPage> {
     var settings = await Settings.read(widget.name);
     widget.cSettings = settings;
     print(widget.cSettings);
+    fillSettings();
+    return true;
+  }
+
+  fillSettings() {
+    list = [];
     widget.map.forEach((key, value) {
       list.add(Param(key, value['name'], value['values'], widget._save,
-          widget.cSettings[key] ?? (value['values'].isNotEmpty ?  value['values'] : "")
-        , value['langs']
+        widget.cSettings[key] ?? (value['values'].isNotEmpty ?  value['values'] : "")
+        , value['langs'], onEditing: (param) { setState(() {
+          currentParam = param;
+        });},
       ));
     });
-    return true;
+    return list;
   }
 }
 
@@ -287,11 +325,12 @@ class Param extends StatefulWidget {
   Function _save;
   dynamic value;
   List<Layout> layouts = [];
+  Function onEditing;
 
   @override
   _ParamState createState() => _ParamState();
 
-  Param(this.id, this.name, this.args, this._save, this.value, List<dynamic> langs) {
+  Param(this.id, this.name, this.args, this._save, this.value, List<dynamic> langs, {this.onEditing}) {
     if (args.isEmpty) {
       if (langs != null)
       langs.forEach((element) {
@@ -319,6 +358,7 @@ class _ParamState extends State<Param> {
   bool editing = false;
   bool isPassword = true;
 
+
   @override
   void initState() {
     if (widget.args.isNotEmpty) {
@@ -338,42 +378,73 @@ class _ParamState extends State<Param> {
 
   @override
   Widget build(BuildContext context) {
+    print('param built');
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Row(
-            mainAxisAlignment: editing ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              AnimatedSwitcher(
-                duration: Duration(milliseconds: 0),
-                child: editing ? Container() : Padding(
-                    padding: EdgeInsets.fromLTRB(0, 0, 16, 0),
-                    child: Text(widget.name)),
-              ),
-              getInputWidget(),
-            ],
-          ),
-          editing && widget.layouts.isNotEmpty ?
-          Padding(
-            padding: EdgeInsets.all(8),
-            child: Keyboard(
-              initValue: widget.value,
-                onEdited: (value){
-                  setState(() {
-                    widget.value = value;
-                    widget._save(widget.id, widget.value);
-                  });
-                },
-                layouts: widget.layouts),
-          ) : Container()
-        ],
-      ),
+      padding: EdgeInsets.all(8),
+      child: Keyboard(
+        child: Row(
+          mainAxisAlignment: editing ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            AnimatedSwitcher(
+              duration: Duration(milliseconds: 0),
+              child: editing ? Container() : Padding(
+                  padding: EdgeInsets.fromLTRB(0, 0, 16, 0),
+                  child: Text(widget.name)),
+            ),
+            getInputWidget(),
+          ],
+        ),
+          initValue: widget.value,
+          onEdited: (value){
+            setState(() {
+              widget.value = value;
+              widget._save(widget.id, widget.value);
+            });
+          },
+          layouts: widget.layouts,
+          visible: false && editing && widget.layouts.isNotEmpty),
     );
   }
+
+//  @override
+//  Widget build(BuildContext context) {
+//    return Padding(
+//      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+//      child: Column(
+//        mainAxisSize: MainAxisSize.min,
+//        crossAxisAlignment: CrossAxisAlignment.center,
+//        mainAxisAlignment: MainAxisAlignment.center,
+//        children: <Widget>[
+//          Row(
+//            mainAxisAlignment: editing ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
+//            children: <Widget>[
+//              AnimatedSwitcher(
+//                duration: Duration(milliseconds: 0),
+//                child: editing ? Container() : Padding(
+//                    padding: EdgeInsets.fromLTRB(0, 0, 16, 0),
+//                    child: Text(widget.name)),
+//              ),
+//              getInputWidget(),
+//            ],
+//          ),
+//
+//          Padding(
+//            padding: EdgeInsets.all(8),
+//            child: Keyboard(
+//              initValue: widget.value,
+//                onEdited: (value){
+//                  setState(() {
+//                    widget.value = value;
+//                    widget._save(widget.id, widget.value);
+//                  });
+//                },
+//                layouts: widget.layouts,
+//            visible: editing && widget.layouts.isNotEmpty),
+//          )
+//        ],
+//      ),
+//    );
+//  }
 
   Widget getInputWidget() {
     if (widget.args.isEmpty) {
@@ -383,6 +454,7 @@ class _ParamState extends State<Param> {
         child: GestureDetector(
           onTap: () {setState(() {
           editing = !editing;
+          if (widget.onEditing != null) widget.onEditing( editing ? widget : null);
         });},
           child: Container(
             alignment: Alignment.center,

@@ -55,7 +55,7 @@ class _RegisterState extends State<Register> {
 
     keyboard = Keyboard(
         onEdited: (value) {
-          editText = value.trim();
+          editText = value;
           value = userName.isEmpty ? editText.substring(0, editText.length < 25 ? editText.length : 25) : editText.substring(0, editText.length < 2 ? editText.length : 2);
           keyboard.setEditText(value);
           print(value);
@@ -64,7 +64,7 @@ class _RegisterState extends State<Register> {
         layouts:
         userName.isEmpty ? (
             (langs.contains(KeyboardLangs.latin) ? [Layout.latin(showInputField: true)] : List<Layout>(0)) +
-                (langs.contains(KeyboardLangs.cyrillic) ? [Layout.cyrillic(showInputField: true,)] : List<Layout>(0))
+                (langs.contains(KeyboardLangs.cyrillic) ? [Layout.cyrillic(showInputField: true).addKeyBuilder(Layout.getStringKeyBuilder([[' ', 'OK']], keyRatio: 1), flex: 0.33)] : List<Layout>(0))
         ) : [Layout.numeric(showInputField: true)]
     );
 
