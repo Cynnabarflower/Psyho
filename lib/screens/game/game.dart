@@ -352,7 +352,8 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
         answers[currentImageNumber] == answer ||
             answers[currentImageNumber] == ANSWERS.NONE));
 
-    if (currentImageNumber >= images.length || currentImageNumber > 12) {
+    if (currentImageNumber >= images.length || currentImageNumber > 3) {
+      Settings.saveStats(statistics, DateTime.now().toIso8601String());
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => Reward(statistics)),

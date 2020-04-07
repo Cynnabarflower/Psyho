@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
@@ -13,13 +14,18 @@ class Register extends StatefulWidget {
   _RegisterState createState() => _RegisterState();
 }
 
-class _RegisterState extends State<Register> {
+class _RegisterState extends State<Register> with SingleTickerProviderStateMixin {
   String userName = "";
+  String yearsOld = "";
   String bDay = "";
-  String editText = "";
+  String bMonth = "";
   String qText = "What's your name?";
+  String gender = "";
+  int currentStageNumber = 0;
+  var stages = [];
   var langs = [];
-  Keyboard keyboard;
+  TabController _tabController;
+  List<Keyboard> keyboards = [];
 
   Future<bool> loadSettings() async {
     await Settings.read('main').then((value) {
@@ -32,13 +38,41 @@ class _RegisterState extends State<Register> {
       } else {
         langs = [KeyboardLangs.cyrillic_with_digits, KeyboardLangs.latin_with_digits];
       }
+      stages = [
+        {
+          'question': "What's your name?",
+          'answer' : '',
+          'layouts':             (langs.contains(KeyboardLangs.latin) ? [Layout.latin()] : List<Layout>(0)) +
+              (langs.contains(KeyboardLangs.cyrillic) ? [Layout.cyrillic()] : List<Layout>(0))
+        },
+        {
+          'question': "Are you a boy or a girl?",
+          'answer' : '',
+          'layouts': [Layout.gender()]
+        },
+        {
+          'question': "How old are you?",
+          'answer': '',
+          'layouts': [Layout.numeric()]
+        },
+        {
+          'question': "When is your birthday?",
+          'answer': '',
+          'layouts': [Layout.numeric()]
+        },
+        {
+          'question': "When is your birthday?",
+          'answer': '',
+          'layouts': [Layout.dayMonth()]
+        }
+      ];
     });
     return true;
   }
 
   @override
   void initState() {
-    editText = "";
+    _tabController = new TabController(vsync: this, length: 5);
     loadSettings().then((value) => setState((){}));
     super.initState();
 /*    SystemChrome.setEnabledSystemUIOverlays([]);
@@ -53,44 +87,152 @@ class _RegisterState extends State<Register> {
   @override
   Widget build(BuildContext context) {
 
-    keyboard = Keyboard(
+    if (langs.isEmpty) {
+      return Scaffold(
+        body: Center(
+          child: Container(
+            alignment: Alignment.center,
+            color: Colors.amber,
+            child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: SizedBox(
+                  width: 300,
+                  height: 300,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 16,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.redAccent),
+                  ),
+                ),
+              ),
+          ),
+        ),
+      );
+    }
+
+    keyboards = [
+      Keyboard( // Name
         onEdited: (value) {
-          editText = value;
-          value = userName.isEmpty ? editText.substring(0, editText.length < 25 ? editText.length : 25) : editText.substring(0, editText.length < 2 ? editText.length : 2);
-          keyboard.setEditText(value);
-          print(value);
-         },
-        initValue: "",
-        layouts:
-        userName.isEmpty ? (
-            (langs.contains(KeyboardLangs.latin) ? [Layout.latin(showInputField: true)] : List<Layout>(0)) +
-                (langs.contains(KeyboardLangs.cyrillic) ? [Layout.cyrillic(showInputField: true).addKeyBuilder(Layout.getStringKeyBuilder([[' ', 'OK']], keyRatio: 1), flex: 0.33)] : List<Layout>(0))
-        ) : [Layout.numeric(showInputField: true)]
+          setState(() {
+            userName = value.substring(0, value.length < 25 ? value.length : 25);
+            keyboards[0].setEditText(userName);
+            print(userName);
+          });
+        },
+        done: () { next(); },
+        initValue: userName,
+        layouts: stages[0]['layouts'],
+        showInputField: true,
+      ),
+      Keyboard( // Gender
+        onEdited: (value) {
+          setState(() {
+            gender = value;
+            keyboards[1].setEditText(bDay);
+            print(gender);
+          });
+        },
+        initValue: '',
+        layouts: stages[1]['layouts'],
+        showInputField: true,
+      ),
+      Keyboard( // Age
+        onEdited: (value) {
+          setState(() {
+            yearsOld = value;
+            keyboards[2].setEditText(yearsOld);
+            print(yearsOld);
+          });
+        },
+        initValue: yearsOld,
+        layouts: stages[2]['layouts'],
+        showInputField: true,
+      ),
+      Keyboard( // bDay
+        onEdited: (value) {
+          setState(() {
+            bDay = value;
+            keyboards[3].setEditText(bDay);
+            print(bDay);
+          });
+        },
+        initValue: bDay,
+        layouts: stages[3]['layouts'],
+        showInputField: true,
+      ),
+      Keyboard( // bMonth
+        onEdited: (value) {
+          setState(() {
+            bMonth = value;
+            keyboards[4].setEditText(bMonth);
+            print(bMonth);
+          });
+        },
+        initValue: bMonth,
+        layouts: stages[4]['layouts'],
+        showInputField: true,
+      )
+    ];
+
+    keyboards[0].setInputField(
+        InputField(forward: next, backward: previous)
     );
+
+    keyboards[1].setInputField(
+        InputField(forward: next, backward: previous)
+    );
+    keyboards[2].setInputField(
+        InputField(forward: next, backward: previous)
+    );
+    keyboards[3].setInputField(
+        InputField(forward: next, backward: previous)
+    );
+    keyboards[4].setInputField(
+        InputField(forward: next, backward: previous)
+    );
+
+    var tabs = <Widget>[];
+    for (var i  = 0; i < stages.length; i++)
+      tabs.add(
+          Container(
+            color: Colors.amber,
+            alignment: Alignment.center,
+            child: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      stages[i]['question'],
+                      style: TextStyle(
+                          fontSize: MediaQuery.of(context).size.width / 14,
+                          color: Colors.redAccent),
+                    ),
+                  ),
+                  keyboards[i],
+                ],
+              ),
+            ),
+          )
+      );
 
     return Scaffold(
       resizeToAvoidBottomPadding: false,
-      body: Container(
-        color: Colors.amber,
-        alignment: Alignment.center,
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  qText,
-                  style: TextStyle(
-                      fontSize: MediaQuery.of(context).size.width / 14,
-                      color: Colors.redAccent),
-                ),
-              ),
-              keyboard
-            ],
-          ),
+      body: WillPopScope(
+        child: TabBarView(
+          controller: _tabController,
+          physics: NeverScrollableScrollPhysics(),
+          children: tabs,
         ),
+          onWillPop: () {
+/*            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => MainMenu()),
+            );*/
+            previous();
+            return new Future(() => false);
+          }
       ),
       floatingActionButton: Container(
         padding: EdgeInsets.symmetric(horizontal: 8),
@@ -101,27 +243,51 @@ class _RegisterState extends State<Register> {
               textAlign: TextAlign.center,
               text: TextSpan(text: "OK", style: TextStyle(color: Colors.black))),
           onPressed: () {
-            if (userName.isNotEmpty && editText.isNotEmpty) {
-              bDay = editText;
-            print(userName);
-            Settings.save('session', {'name': userName, 'bDay' : bDay});
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => MainMenu()),
-            );
-          } else if (editText.isNotEmpty) {
-              setState(() {
-                if (keyboard != null) {
-                  keyboard.setEditText('');
-                }
-                userName = editText;
-                editText = "";
-                qText = "How old are you?";
-              });
-            }
+            next();
             },
         ),
       ),
     );
+  }
+
+  next() {
+    if (currentStageNumber == 0) {
+      setState(() {
+        if (userName.isNotEmpty) {
+          currentStageNumber++;
+          _tabController.animateTo(currentStageNumber);
+        }
+      });
+    } else if (currentStageNumber == 1) {
+      if (gender.isNotEmpty) {
+        currentStageNumber++;
+        _tabController.animateTo(currentStageNumber);
+      }
+      setState(() {});
+    } else if (currentStageNumber == 2) {
+      if (yearsOld.isNotEmpty) {
+        currentStageNumber++;
+        _tabController.animateTo(currentStageNumber);
+      }
+      setState(() {});
+    } else if (currentStageNumber == 3) {
+      if (bDay.isNotEmpty) {
+        currentStageNumber++;
+        _tabController.animateTo(currentStageNumber);
+      }
+      setState(() {});
+    } else if (currentStageNumber == 4) {
+      Settings.save('session', {'name': userName, 'bday' : bDay, 'sex' : gender});
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => MainMenu()),
+      );
+    }
+  }
+  previous() {
+    if (currentStageNumber > 0) {
+      currentStageNumber--;
+      _tabController.animateTo(currentStageNumber);
+    }
   }
 }

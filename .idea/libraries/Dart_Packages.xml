@@ -72,6 +72,13 @@
             </list>
           </value>
         </entry>
+        <entry key="flutter_share">
+          <value>
+            <list>
+              <option value="C:/Program Files/Flutter/.pub-cache/hosted/pub.dartlang.org/flutter_share-1.0.2+1/lib" />
+            </list>
+          </value>
+        </entry>
         <entry key="flutter_test">
           <value>
             <list>
@@ -308,6 +315,7 @@
       <root url="file://C:/Program Files/Flutter/.pub-cache/hosted/pub.dartlang.org/convert-2.1.1/lib" />
       <root url="file://C:/Program Files/Flutter/.pub-cache/hosted/pub.dartlang.org/crypto-2.1.3/lib" />
       <root url="file://C:/Program Files/Flutter/.pub-cache/hosted/pub.dartlang.org/cupertino_icons-0.1.3/lib" />
+      <root url="file://C:/Program Files/Flutter/.pub-cache/hosted/pub.dartlang.org/flutter_share-1.0.2+1/lib" />
       <root url="file://C:/Program Files/Flutter/.pub-cache/hosted/pub.dartlang.org/google_fonts-0.3.10/lib" />
       <root url="file://C:/Program Files/Flutter/.pub-cache/hosted/pub.dartlang.org/http-0.12.0+4/lib" />
       <root url="file://C:/Program Files/Flutter/.pub-cache/hosted/pub.dartlang.org/http_parser-3.1.4/lib" />

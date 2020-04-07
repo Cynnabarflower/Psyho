@@ -5,6 +5,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_share/flutter_share.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:psycho_app/custom_widgets/keyboard/Keyboard.dart';
 import 'package:psycho_app/screens/main/main_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,7 +33,7 @@ var PARAMS = {
     "password": {
       "name": "Settings password",
       "values": [],
-      "langs": [KeyboardLangs.numeric.toString()]
+      "langs": [KeyboardLangs.numeric.toString(), KeyboardLangs.cyrillic.toString()]
     },
     "showStats": {
       "name": "Show stats on reward screen",
@@ -92,6 +94,26 @@ class Settings extends StatefulWidget {
     return settings;
     return value != null ? json.decode(value) : Map<String, dynamic>();
   }
+
+   static saveStats(List<dynamic> stats, time) async {
+     final directory = await Directory((await getApplicationDocumentsDirectory()).path + '/stats/').create();
+     final user = await Settings.read('session');
+     var file = File("${directory.path}${user['name']}_${user['sex']}_${user['bday']}_${time.toString()}");
+
+     file.writeAsString(
+       stats.fold(
+           "${user['name']}\n${user['sex']}\n${user['bday']}\n${time.toString()}",
+               (previousValue, element) => previousValue + '\n' + element.toString())
+     ).then((value) {
+       print('stats saved');
+     });
+   }
+
+   static loadStats() async {
+     final directory = Directory((await getApplicationDocumentsDirectory()).path + '/stats/');
+     var files = directory.listSync().where((element) => element is File).toList();
+     return files;
+   }
 
   static save(String key, Map<dynamic, dynamic> value) async {
     final prefs = await SharedPreferences.getInstance();
@@ -160,7 +182,7 @@ class _SettingsState extends State<Settings> {
                         children: <Widget>[
                           SettingsPage('main', PARAMS['main']),
                           SettingsPage('tutorial', PARAMS['tutorial']),
-                          SettingsPage('statistics', PARAMS['statistics'])
+                          StatisticsPage(),
                         ],
                       ),
                     ),
@@ -178,21 +200,22 @@ class _SettingsState extends State<Settings> {
                               padding: EdgeInsets.all(8)),
                         ),
                         Container(
-                          child: Container(
-                            alignment: Alignment.center,
-                            padding: EdgeInsets.symmetric(horizontal: 8),
-                            child:
-                              Keyboard(
+                          alignment: Alignment.center,
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          child:
+                            Container(
+                              child: Keyboard(
                                   onEdited: (val) { password == val ? setState(() {password = "";}) : "";},
                                   initValue: "",
+                                  showInputField: true,
                                   layouts: [
-                                    Layout.latin(showInputField: true ),
-                                    Layout.cyrillic(showInputField: true),
-                                    Layout.latin(showInputField: true, withDigits: true),
-                                    Layout.cyrillic(showInputField: true, withDigits: true),
-                                    Layout.numeric(showInputField: true)
-                                  ])
-                          ),
+                                    Layout.latin(),
+                                    Layout.cyrillic(),
+                                    Layout.latin(withDigits: true),
+                                    Layout.cyrillic(withDigits: true),
+                                    Layout.numeric()
+                                  ]),
+                            )
                         )
                       ],
                     ),
@@ -240,6 +263,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
         body: WillPopScope(
       child: Container(
@@ -259,9 +283,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         alignment: Alignment.bottomCenter,
                         child: SizedBox(
                           width: MediaQuery.of(context).size.width,
-                          height: MediaQuery.of(context).size.height,
+                          height: MediaQuery.of(context).size.height*2/3,
                           child: Keyboard(
-                            showInputField: true,
+                            showInputField: false,
                             layouts: currentParam.layouts,
                             onEdited: (val)  {
                               setState(() {
@@ -381,28 +405,18 @@ class _ParamState extends State<Param> {
     print('param built');
     return Padding(
       padding: EdgeInsets.all(8),
-      child: Keyboard(
-        child: Row(
-          mainAxisAlignment: editing ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
-          children: <Widget>[
-            AnimatedSwitcher(
-              duration: Duration(milliseconds: 0),
-              child: editing ? Container() : Padding(
-                  padding: EdgeInsets.fromLTRB(0, 0, 16, 0),
-                  child: Text(widget.name)),
-            ),
-            getInputWidget(),
-          ],
-        ),
-          initValue: widget.value,
-          onEdited: (value){
-            setState(() {
-              widget.value = value;
-              widget._save(widget.id, widget.value);
-            });
-          },
-          layouts: widget.layouts,
-          visible: false && editing && widget.layouts.isNotEmpty),
+      child: Row(
+        mainAxisAlignment: editing ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          AnimatedSwitcher(
+            duration: Duration(milliseconds: 0),
+            child: editing ? Container() : Padding(
+                padding: EdgeInsets.fromLTRB(0, 0, 16, 0),
+                child: Text(widget.name)),
+          ),
+          getInputWidget(),
+        ],
+      ),
     );
   }
 
@@ -561,4 +575,84 @@ class _ParamState extends State<Param> {
       ),
     );
   }
+}
+
+class StatisticsPage extends StatefulWidget {
+
+  Future<void> share() async {
+    await FlutterShare.share(
+
+    );
+  }
+
+  Future<String> getStatistics() async {
+
+  }
+
+  Future<void> shareFile() async {
+    var statFile = await getStatistics();
+    await FlutterShare.shareFile(
+      title: 'Example share',
+      text: 'Example share text',
+      filePath: statFile,
+    );
+  }
+
+  @override
+  State<StatefulWidget> createState() => _StatisticsPageState();
+
+
+}
+
+class _StatisticsPageState extends State<StatisticsPage> {
+
+
+  List<String> checkBoxes = [];
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+      body: Container(
+          alignment: Alignment.center,
+          color: Colors.amber,
+          child: FutureBuilder(
+            future: Settings.loadStats(),
+            builder: (context, snapshot) =>
+            snapshot.connectionState == ConnectionState.done ?
+            ListView.builder(
+                itemCount: snapshot.data.length,
+                itemBuilder: (BuildContext context, int index) {
+                  checkBoxes = List(snapshot.data.length);
+                  checkBoxes.fillRange(0, snapshot.data.length, '');
+                  return Card(
+                    color: Colors.orangeAccent.withOpacity(0.8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+                    child: CheckboxListTile(
+                      title:  FittedBox(fit: BoxFit.fitWidth,child: Text(snapshot.data[index].toString().split('/').last, style: TextStyle(color: Colors.redAccent))),
+                      value: checkBoxes[index].isNotEmpty,
+                      onChanged: (value) {
+                        setState(() {
+                          checkBoxes[index] = snapshot.data[index].toString().split('/').last;
+                        });
+
+                      },
+                    ),
+                  );
+                }) : Text('Loading...'),
+          )
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.share),
+        onPressed: widget.share,
+
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
 }
