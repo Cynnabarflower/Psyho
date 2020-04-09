@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import 'package:flutter/widgets.dart';
+import 'package:psycho_app/custom_widgets/keyboard/Keyboard.dart';
 
 class AnswerButton extends StatefulWidget {
   AssetImage image;
@@ -43,11 +46,16 @@ class _AnswerButtonState extends State<AnswerButton> {
             margin: EdgeInsets.all(8),
             alignment: Alignment.center,
             decoration: BoxDecoration(color: widget.shapeColor.withOpacity(widget.enabled ? 0.6 : 0.3), shape: widget.shape),
-            child: Container(
-              alignment: Alignment.center,
-              child: Image(
-                  color: widget.backgroundColor.withOpacity(widget.enabled ? 0.6 : 0.3), fit: BoxFit.contain, image: widget.image),
-            ),
+              child: LayoutBuilder(
+                builder: (context, constraints) =>
+                Image(
+                  width: min(constraints.maxWidth, constraints.maxHeight) * 0.9,
+                    height: min(constraints.maxWidth, constraints.maxHeight) * 0.9,
+                    color: widget.backgroundColor.withOpacity(widget.enabled ? 0.6 : 0.3),
+                    fit: BoxFit.fill,
+                    image: widget.image),
+              ),
+
           )),
     );
   }

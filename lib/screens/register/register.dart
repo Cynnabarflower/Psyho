@@ -18,7 +18,6 @@ class _RegisterState extends State<Register> with SingleTickerProviderStateMixin
   String userName = "";
   String yearsOld = "";
   String bDay = "";
-  String bMonth = "";
   String qText = "What's your name?";
   String gender = "";
   int currentStageNumber = 0;
@@ -26,9 +25,17 @@ class _RegisterState extends State<Register> with SingleTickerProviderStateMixin
   var langs = [];
   TabController _tabController;
   List<Keyboard> keyboards = [];
+  double dragDelta;
+
 
   Future<bool> loadSettings() async {
     await Settings.read('main').then((value) {
+      if (!value['loginOnBoot']) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MainMenu()),
+        );
+      }
       if (value['fullScreen'])
         SystemChrome.setEnabledSystemUIOverlays([]);
       else
@@ -58,11 +65,6 @@ class _RegisterState extends State<Register> with SingleTickerProviderStateMixin
         {
           'question': "When is your birthday?",
           'answer': '',
-          'layouts': [Layout.numeric()]
-        },
-        {
-          'question': "When is your birthday?",
-          'answer': '',
           'layouts': [Layout.dayMonth()]
         }
       ];
@@ -72,7 +74,12 @@ class _RegisterState extends State<Register> with SingleTickerProviderStateMixin
 
   @override
   void initState() {
-    _tabController = new TabController(vsync: this, length: 5);
+    _tabController = new TabController(vsync: this, length: 4);
+    _tabController.addListener(() {
+      setState(() {
+        currentStageNumber = _tabController.index;
+      });
+    });
     loadSettings().then((value) => setState((){}));
     super.initState();
 /*    SystemChrome.setEnabledSystemUIOverlays([]);
@@ -90,20 +97,23 @@ class _RegisterState extends State<Register> with SingleTickerProviderStateMixin
     if (langs.isEmpty) {
       return Scaffold(
         body: Center(
-          child: Container(
-            alignment: Alignment.center,
-            color: Colors.amber,
-            child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: SizedBox(
-                  width: 300,
-                  height: 300,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 16,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.redAccent),
+          child: GestureDetector(
+
+            child: Container(
+              alignment: Alignment.center,
+              color: Colors.amber,
+              child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: SizedBox(
+                    width: 300,
+                    height: 300,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 16,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.redAccent),
+                    ),
                   ),
                 ),
-              ),
+            ),
           ),
         ),
       );
@@ -129,6 +139,7 @@ class _RegisterState extends State<Register> with SingleTickerProviderStateMixin
             gender = value;
             keyboards[1].setEditText(bDay);
             print(gender);
+            next();
           });
         },
         initValue: '',
@@ -136,9 +147,9 @@ class _RegisterState extends State<Register> with SingleTickerProviderStateMixin
         showInputField: true,
       ),
       Keyboard( // Age
-        onEdited: (value) {
+        onEdited: (String value) {
           setState(() {
-            yearsOld = value;
+            yearsOld = value.substring(0, min(value.length, 2));
             keyboards[2].setEditText(yearsOld);
             print(yearsOld);
           });
@@ -158,18 +169,6 @@ class _RegisterState extends State<Register> with SingleTickerProviderStateMixin
         initValue: bDay,
         layouts: stages[3]['layouts'],
         showInputField: true,
-      ),
-      Keyboard( // bMonth
-        onEdited: (value) {
-          setState(() {
-            bMonth = value;
-            keyboards[4].setEditText(bMonth);
-            print(bMonth);
-          });
-        },
-        initValue: bMonth,
-        layouts: stages[4]['layouts'],
-        showInputField: true,
       )
     ];
 
@@ -186,10 +185,8 @@ class _RegisterState extends State<Register> with SingleTickerProviderStateMixin
     keyboards[3].setInputField(
         InputField(forward: next, backward: previous)
     );
-    keyboards[4].setInputField(
-        InputField(forward: next, backward: previous)
-    );
 
+    var w = MediaQuery.of(context).size.width;
     var tabs = <Widget>[];
     for (var i  = 0; i < stages.length; i++)
       tabs.add(
@@ -222,7 +219,7 @@ class _RegisterState extends State<Register> with SingleTickerProviderStateMixin
       body: WillPopScope(
         child: TabBarView(
           controller: _tabController,
-          physics: NeverScrollableScrollPhysics(),
+          //physics: NeverScrollableScrollPhysics(),
           children: tabs,
         ),
           onWillPop: () {
@@ -234,17 +231,20 @@ class _RegisterState extends State<Register> with SingleTickerProviderStateMixin
             return new Future(() => false);
           }
       ),
-      floatingActionButton: Container(
-        padding: EdgeInsets.symmetric(horizontal: 8),
-        margin: EdgeInsets.symmetric(horizontal: 8),
-        child: FlatButton(
-          color: Colors.amber[200],
-          child: RichText(
-              textAlign: TextAlign.center,
-              text: TextSpan(text: "OK", style: TextStyle(color: Colors.black))),
-          onPressed: () {
-            next();
-            },
+      floatingActionButton: Visibility(
+        visible: false,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          margin: EdgeInsets.symmetric(horizontal: 8),
+          child: FlatButton(
+            color: Colors.amber[200],
+            child: RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(text: "OK", style: TextStyle(color: Colors.black))),
+            onPressed: () {
+              next();
+              },
+          ),
         ),
       ),
     );
@@ -255,34 +255,37 @@ class _RegisterState extends State<Register> with SingleTickerProviderStateMixin
       setState(() {
         if (userName.isNotEmpty) {
           currentStageNumber++;
-          _tabController.animateTo(currentStageNumber);
         }
       });
     } else if (currentStageNumber == 1) {
       if (gender.isNotEmpty) {
         currentStageNumber++;
-        _tabController.animateTo(currentStageNumber);
       }
       setState(() {});
     } else if (currentStageNumber == 2) {
       if (yearsOld.isNotEmpty) {
         currentStageNumber++;
-        _tabController.animateTo(currentStageNumber);
       }
       setState(() {});
-    } else if (currentStageNumber == 3) {
-      if (bDay.isNotEmpty) {
-        currentStageNumber++;
-        _tabController.animateTo(currentStageNumber);
+    } else if (currentStageNumber >= 3) {
+      if (userName.isEmpty) {
+        currentStageNumber = 0;
+      } else if (gender.isEmpty)
+        currentStageNumber = 1;
+      else if (yearsOld.isEmpty)
+        currentStageNumber = 2;
+      else if (bDay.isNotEmpty) {
+        Settings.save('session', {'name': userName, 'age': yearsOld, 'bday' : bDay, 'sex' : gender});
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MainMenu()),
+        );
+
+        return;
       }
-      setState(() {});
-    } else if (currentStageNumber == 4) {
-      Settings.save('session', {'name': userName, 'bday' : bDay, 'sex' : gender});
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => MainMenu()),
-      );
+
     }
+    _tabController.animateTo(currentStageNumber);
   }
   previous() {
     if (currentStageNumber > 0) {

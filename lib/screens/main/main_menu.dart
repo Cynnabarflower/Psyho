@@ -12,6 +12,7 @@ import 'package:psycho_app/custom_widgets/wave/wave.dart';
 import 'package:psycho_app/screens/game/game.dart';
 import 'package:psycho_app/screens/register/register.dart';
 import 'package:psycho_app/screens/settings/settings.dart';
+import 'package:psycho_app/screens/settings/temp.dart';
 
 class MainMenu extends StatefulWidget {
   @override
@@ -91,22 +92,6 @@ class _MainMenuState extends State<MainMenu>
             fit: StackFit.expand,
             children: <Widget>[
               getWaves(),
-              welcomeText == null ? Container() : Align(
-                alignment: Alignment.topCenter,
-                child: SafeArea(
-                  child: Container(
-                    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    alignment: Alignment.topCenter,
-                    child: Text(welcomeText, style: TextStyle(
-                        fontSize: MediaQuery.of(context).size.width/(max(welcomeText.length, 5)),
-                      color: Colors.yellow,
-                      shadows: [Shadow(color: Colors.deepOrangeAccent,
-                      offset: Offset(2, 2))]
-                      )
-                    ),
-                  ),
-                ),
-              ),
               Align(
                 alignment: orientation == Orientation.landscape ? Alignment(-0.5, -0.2) : Alignment(0, -0.4),
                 widthFactor: 0.15,
@@ -201,21 +186,37 @@ class _MainMenuState extends State<MainMenu>
                     mainAxisSize: MainAxisSize.max,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
-                      SizedBox(
-                        width: 60,
-                        height: 60,
-                        child: RaisedButton(
-                          child: Icon(Icons.directions_run),
-                          color: Colors.redAccent,
-                          shape: CircleBorder(),
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => Register()),
-                            );
-                          },
-                        ),
+                      Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: 60,
+                            height: 60,
+                            child: RaisedButton(
+                              child: Icon(Icons.person),
+                              color: Colors.redAccent,
+                              shape: CircleBorder(),
+                              onPressed: () {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => Register()),
+                                );
+                              },
+                            ),
+                          ),
+                          welcomeText == null ? Container() : Container(
+                            margin: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                            child: Text(welcomeText, style: TextStyle(
+                                fontSize: 180/(max(welcomeText.length, 5)),
+                                color: Colors.redAccent,
+                                shadows: [Shadow(color: Colors.amber,
+                                    offset: Offset(2, 2))]
+                            )
+                            ),
+                          ),
+                        ],
+
                       ),
+
                       SizedBox(
                         width: 60,
                         height: 60,

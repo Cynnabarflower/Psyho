@@ -320,12 +320,11 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
                     FittedBox(
                       alignment: Alignment.center,
                       fit: BoxFit.contain,
-                      child: RichText(
-                        text: TextSpan(
-                            style: TextStyle(
-                              color: Colors.redAccent,
-                            ),
-                            text: countDown.toString()),
+                      child: Text(
+                          countDown.toString(),
+                        style: TextStyle(
+                          color: Colors.redAccent
+                        ),
                       ),
                     ),
                     AnimatedBuilder(

@@ -1,16 +1,20 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:archive/archive.dart';
+import 'package:archive/archive_io.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_share/flutter_share.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:psycho_app/custom_widgets/keyboard/Keyboard.dart';
+import 'package:psycho_app/custom_widgets/slideToConfirm/slideToConfirm.dart';
 import 'package:psycho_app/screens/main/main_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:esys_flutter_share/esys_flutter_share.dart';
 
 var PARAMS = {
   "tutorial": {
@@ -33,7 +37,10 @@ var PARAMS = {
     "password": {
       "name": "Settings password",
       "values": [],
-      "langs": [KeyboardLangs.numeric.toString(), KeyboardLangs.cyrillic.toString()]
+      "langs": [
+        KeyboardLangs.numeric.toString(),
+        KeyboardLangs.cyrillic.toString()
+      ]
     },
     "showStats": {
       "name": "Show stats on reward screen",
@@ -52,19 +59,41 @@ var PARAMS = {
     "lang": {
       "name": "Keyboard languages",
       "values": [
-        {"Ru": [KeyboardLangs.cyrillic.toString()]},
-        {"En": [KeyboardLangs.latin.toString()]},
-        {"Ru&En": [KeyboardLangs.cyrillic.toString(), KeyboardLangs.latin.toString()]}
+        {
+          "Ru": [KeyboardLangs.cyrillic.toString()]
+        },
+        {
+          "En": [KeyboardLangs.latin.toString()]
+        },
+        {
+          "Ru&En": [
+            KeyboardLangs.cyrillic.toString(),
+            KeyboardLangs.latin.toString()
+          ]
+        }
       ]
     },
-    "welcomeText" : {
+    "welcomeText": {
       "name": "Welcome text",
       "values": [],
+    },
+    "loginOnBoot": {
+      "name": "Show reg page on launch",
+      "values": [
+        {"yes": true},
+        {"no": false}
+      ],
+    },
+    "loginRequired": {
+      "name": "Login required to play",
+      "values": [
+        {"yes": true},
+        {"no": false}
+      ],
     }
   },
   "statistics": {}
 };
-
 
 class Settings extends StatefulWidget {
   @override
@@ -95,25 +124,34 @@ class Settings extends StatefulWidget {
     return value != null ? json.decode(value) : Map<String, dynamic>();
   }
 
-   static saveStats(List<dynamic> stats, time) async {
-     final directory = await Directory((await getApplicationDocumentsDirectory()).path + '/stats/').create();
-     final user = await Settings.read('session');
-     var file = File("${directory.path}${user['name']}_${user['sex']}_${user['bday']}_${time.toString()}");
+  static saveStats(List<dynamic> stats, time) async {
+    final directory = await Directory(
+            (await getApplicationDocumentsDirectory()).path + '/stats/')
+        .create();
+    final user = await Settings.read('session');
+    var file = File(
+        "${directory.path}${user['name']}_${user['sex']}_${user['age']}_${user['bday']}_${time.toString()}.txt"
+    );
 
-     file.writeAsString(
-       stats.fold(
-           "${user['name']}\n${user['sex']}\n${user['bday']}\n${time.toString()}",
-               (previousValue, element) => previousValue + '\n' + element.toString())
-     ).then((value) {
-       print('stats saved');
-     });
-   }
+    file
+        .writeAsString(stats.fold(
+            "${user['name']}\n${user['sex']}\n${user['bday']}\n${user['bday']}\n${time.toString()}",
+            (previousValue, element) =>
+                previousValue + '\n' + element.toString()))
+        .then((value) {
+      print('stats saved');
+    });
+  }
 
-   static loadStats() async {
-     final directory = Directory((await getApplicationDocumentsDirectory()).path + '/stats/');
-     var files = directory.listSync().where((element) => element is File).toList();
-     return files;
-   }
+  static Future<List> loadStats() async {
+    final directory =
+        Directory((await getApplicationDocumentsDirectory()).path + '/stats/');
+    if (!directory.existsSync())
+      directory.createSync();
+    var files =
+    (directory.listSync().where((element) => element is File).map((e) => e.path)).toList();
+    return files;
+  }
 
   static save(String key, Map<dynamic, dynamic> value) async {
     final prefs = await SharedPreferences.getInstance();
@@ -156,13 +194,13 @@ class _SettingsState extends State<Settings> {
     return Scaffold(
       resizeToAvoidBottomPadding: false,
       body: Container(
-        color: Colors.amber,
+        alignment: Alignment.center,
         child: WillPopScope(
           child: FutureBuilder(
               future: settingsLoaded,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.done) if (password
-                    .isEmpty)
+                if (snapshot.connectionState ==
+                    ConnectionState.done) if (password.isEmpty)
                   return Center(
                       child: DefaultTabController(
                     length: 3,
@@ -171,6 +209,7 @@ class _SettingsState extends State<Settings> {
                         backgroundColor: Colors.orange,
                         bottom: TabBar(
                           indicatorColor: Colors.redAccent,
+
                           tabs: [
                             Tab(text: "Main"),
                             Tab(text: "Tutorial"),
@@ -179,6 +218,7 @@ class _SettingsState extends State<Settings> {
                         ),
                       ),
                       body: TabBarView(
+                        physics: FixedExtentScrollPhysics(),
                         children: <Widget>[
                           SettingsPage('main', PARAMS['main']),
                           SettingsPage('tutorial', PARAMS['tutorial']),
@@ -193,29 +233,31 @@ class _SettingsState extends State<Settings> {
                     child: Stack(
                       children: <Widget>[
                         GestureDetector(
-                          onTap: () {Navigator.pop(context);},
+                          onTap: () {
+                            Navigator.pop(context);
+                          },
                           child: Container(
                               alignment: Alignment.center,
                               color: Colors.amber,
                               padding: EdgeInsets.all(8)),
                         ),
-                        Container(
-                          alignment: Alignment.center,
-                          padding: EdgeInsets.symmetric(horizontal: 8),
-                          child:
-                            Container(
-                              child: Keyboard(
-                                  onEdited: (val) { password == val ? setState(() {password = "";}) : "";},
-                                  initValue: "",
-                                  showInputField: true,
-                                  layouts: [
-                                    Layout.latin(),
-                                    Layout.cyrillic(),
-                                    Layout.latin(withDigits: true),
-                                    Layout.cyrillic(withDigits: true),
-                                    Layout.numeric()
-                                  ]),
-                            )
+                        Column(
+                          children: <Widget>[
+                            Keyboard(
+                                onEdited: (val) {
+                                  print(val);
+                                  enteredPassword = val;
+                                   password == val
+                                      ? password = ''
+                                      : "";
+                                  setState(() {});
+                                },
+                                initValue: enteredPassword,
+                                showInputField: true,
+                                layouts: [
+                                  Layout.numeric()
+                                ]).setInputField(InputField(isPassword: true, minTextLength: 4,)),
+                          ],
                         )
                       ],
                     ),
@@ -235,7 +277,6 @@ class _SettingsState extends State<Settings> {
       ),
     );
   }
-
 }
 
 class SettingsPage extends StatefulWidget {
@@ -263,49 +304,53 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
         body: WillPopScope(
       child: Container(
         color: Colors.amber,
         alignment: Alignment.center,
-        child: LayoutBuilder(
-            builder: (context, snapshot) {
-              if (list != null && list.isNotEmpty)
-                return Stack(
-                  children: <Widget>[
-                    ListView(
-                        padding: EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-                        children: fillSettings()),
-
-                    LayoutBuilder(
-                      builder: (context, constraints) => currentParam == null ? Container(width: 0,height: 0,) : Container(
-                        alignment: Alignment.bottomCenter,
-                        child: SizedBox(
-                          width: MediaQuery.of(context).size.width,
-                          height: MediaQuery.of(context).size.height*2/3,
-                          child: Keyboard(
-                            showInputField: false,
-                            layouts: currentParam.layouts,
-                            onEdited: (val)  {
-                              setState(() {
-                                currentParam.value = val;
-                                widget._save(currentParam.id, currentParam.value);
-                                fillSettings();
-                              });
+        child: LayoutBuilder(builder: (context, snapshot) {
+          if (list != null && list.isNotEmpty)
+            return Stack(
+              children: <Widget>[
+                ListView(
+                    padding: EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                    children: fillSettings()),
+                LayoutBuilder(
+                  builder: (context, constraints) => currentParam == null
+                      ? Container(
+                          width: 0,
+                          height: 0,
+                        )
+                      : Container(
+                          alignment: Alignment.bottomCenter,
+                          child: SizedBox(
+                            width: MediaQuery.of(context).size.width,
+                            height: MediaQuery.of(context).size.height * 2 / 3,
+                            child: Keyboard(
+                              showInputField: false,
+                              layouts: currentParam.layouts,
+                              onEdited: (val) {
+                                setState(() {
+                                  currentParam.value = val;
+                                  widget._save(
+                                      currentParam.id, currentParam.value);
+                                  fillSettings();
+                                });
                                 print(val);
-                            },
-                            initValue: currentParam == null ? '' : currentParam.value.toString(),
+                              },
+                              initValue: currentParam == null
+                                  ? ''
+                                  : currentParam.value.toString(),
+                            ),
                           ),
                         ),
-                      ),
-                    )
-
-                  ],
-                );
-              else
-                return Container();
-            }),
+                )
+              ],
+            );
+          else
+            return Container();
+        }),
       ),
       onWillPop: () {
         return Future(() => true);
@@ -316,7 +361,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    readSettings().then((value) => setState((){}));
+    readSettings().then((value) => setState(() {}));
   }
 
   Future<bool> readSettings() async {
@@ -331,11 +376,19 @@ class _SettingsPageState extends State<SettingsPage> {
   fillSettings() {
     list = [];
     widget.map.forEach((key, value) {
-      list.add(Param(key, value['name'], value['values'], widget._save,
-        widget.cSettings[key] ?? (value['values'].isNotEmpty ?  value['values'] : "")
-        , value['langs'], onEditing: (param) { setState(() {
-          currentParam = param;
-        });},
+      list.add(Param(
+        key,
+        value['name'],
+        value['values'],
+        widget._save,
+        widget.cSettings[key] ??
+            (value['values'].isNotEmpty ? value['values'] : ""),
+        value['langs'],
+        onEditing: (param) {
+          setState(() {
+            currentParam = param;
+          });
+        },
       ));
     });
     return list;
@@ -354,24 +407,35 @@ class Param extends StatefulWidget {
   @override
   _ParamState createState() => _ParamState();
 
-  Param(this.id, this.name, this.args, this._save, this.value, List<dynamic> langs, {this.onEditing}) {
+  Param(this.id, this.name, this.args, this._save, this.value,
+      List<dynamic> langs,
+      {this.onEditing}) {
     if (args.isEmpty) {
       if (langs != null)
-      langs.forEach((element) {
-        var el = Layout.getKeyboardLangFromString(element);
-        switch (el) {
-          case KeyboardLangs.cyrillic: layouts.add(Layout.cyrillic()); break;
-          case KeyboardLangs.latin: layouts.add(Layout.latin()); break;
-          case KeyboardLangs.cyrillic_with_digits: layouts.add(Layout.cyrillic(withDigits: true)); break;
-          case KeyboardLangs.latin_with_digits: layouts.add(Layout.latin(withDigits: true)); break;
-          case KeyboardLangs.numeric: layouts.add(Layout.numeric()); break;
-          case KeyboardLangs.digits: layouts.add(Layout.digital());
-        }
-      });
-      else {
-      }
+        langs.forEach((element) {
+          var el = Layout.getKeyboardLangFromString(element);
+          switch (el) {
+            case KeyboardLangs.cyrillic:
+              layouts.add(Layout.cyrillic());
+              break;
+            case KeyboardLangs.latin:
+              layouts.add(Layout.latin());
+              break;
+            case KeyboardLangs.cyrillic_with_digits:
+              layouts.add(Layout.cyrillic(withDigits: true));
+              break;
+            case KeyboardLangs.latin_with_digits:
+              layouts.add(Layout.latin(withDigits: true));
+              break;
+            case KeyboardLangs.numeric:
+              layouts.add(Layout.numeric());
+              break;
+            case KeyboardLangs.digits:
+              layouts.add(Layout.digital());
+          }
+        });
+      else {}
     }
-
   }
 }
 
@@ -382,7 +446,6 @@ class _ParamState extends State<Param> {
   bool editing = false;
   bool isPassword = true;
 
-
   @override
   void initState() {
     if (widget.args.isNotEmpty) {
@@ -391,7 +454,8 @@ class _ParamState extends State<Param> {
           arg.keys.elementAt(0),
           style: TextStyle(color: Colors.black),
         ));
-        isSelected.add(json.encode(widget.value) == json.encode(arg.values.elementAt(0)));
+        isSelected.add(
+            json.encode(widget.value) == json.encode(arg.values.elementAt(0)));
       }
     } else {}
   }
@@ -406,13 +470,16 @@ class _ParamState extends State<Param> {
     return Padding(
       padding: EdgeInsets.all(8),
       child: Row(
-        mainAxisAlignment: editing ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
+        mainAxisAlignment:
+            editing ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
         children: <Widget>[
           AnimatedSwitcher(
             duration: Duration(milliseconds: 0),
-            child: editing ? Container() : Padding(
-                padding: EdgeInsets.fromLTRB(0, 0, 16, 0),
-                child: Text(widget.name)),
+            child: editing
+                ? Container()
+                : Padding(
+                    padding: EdgeInsets.fromLTRB(0, 0, 16, 0),
+                    child: Text(widget.name)),
           ),
           getInputWidget(),
         ],
@@ -463,40 +530,44 @@ class _ParamState extends State<Param> {
   Widget getInputWidget() {
     if (widget.args.isEmpty) {
       if (widget.layouts.isNotEmpty) {
-      return Flexible(
-        flex: 100,
-        child: GestureDetector(
-          onTap: () {setState(() {
-          editing = !editing;
-          if (widget.onEditing != null) widget.onEditing( editing ? widget : null);
-        });},
-          child: Container(
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.all(Radius.circular(8)),
-              color: Colors.orangeAccent,
-            ),
+        return Flexible(
+          flex: 100,
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                editing = !editing;
+                if (widget.onEditing != null)
+                  widget.onEditing(editing ? widget : null);
+              });
+            },
             child: Container(
-              height: 40,
               alignment: Alignment.center,
-              child: Text(
-                isPassword && !editing ? widget.value.replaceAll(RegExp('[0-9]'), '*') : widget.value,
-                style: TextStyle(
-                  fontSize: 30
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+                color: Colors.orangeAccent,
+              ),
+              child: Container(
+                height: 40,
+                alignment: Alignment.center,
+                child: Text(
+                  isPassword && !editing
+                      ? widget.value.replaceAll(RegExp('[0-9]'), '*')
+                      : widget.value,
+                  style: TextStyle(fontSize: 30),
                 ),
               ),
             ),
           ),
-        ),
-      );
-      }
-      else {
+        );
+      } else {
         return Flexible(
           flex: 100,
           child: GestureDetector(
-            onTap: () {setState(() {
-              editing = !editing;
-            });},
+            onTap: () {
+              setState(() {
+                editing = !editing;
+              });
+            },
             child: Container(
               alignment: Alignment.center,
               decoration: BoxDecoration(
@@ -507,16 +578,16 @@ class _ParamState extends State<Param> {
                 height: 40,
                 alignment: Alignment.center,
                 child: TextFormField(
-                  initialValue: isPassword && !editing ? widget.value.replaceAll(RegExp('[0-9]'), '*') : widget.value,
+                  initialValue: isPassword && !editing
+                      ? widget.value.replaceAll(RegExp('[0-9]'), '*')
+                      : widget.value,
                   onChanged: (value) {
                     setState(() {
                       widget.value = value;
                       widget._save(widget.id, widget.value);
                     });
                   },
-                  style: TextStyle(
-                      fontSize: 30
-                  ),
+                  style: TextStyle(fontSize: 30),
                 ),
               ),
             ),
@@ -579,80 +650,190 @@ class _ParamState extends State<Param> {
 
 class StatisticsPage extends StatefulWidget {
 
-  Future<void> share() async {
-    await FlutterShare.share(
-
-    );
-  }
-
-  Future<String> getStatistics() async {
-
-  }
-
-  Future<void> shareFile() async {
-    var statFile = await getStatistics();
-    await FlutterShare.shareFile(
-      title: 'Example share',
-      text: 'Example share text',
-      filePath: statFile,
-    );
-  }
 
   @override
   State<StatefulWidget> createState() => _StatisticsPageState();
-
-
 }
 
 class _StatisticsPageState extends State<StatisticsPage> {
+  List<bool> checkBoxes = [];
+  List<String> files;
+  bool loaded = false;
+  bool deleteDragStarted = false;
 
+  
+  Future<String> getChosenFiles() async {
+    var chosenFiles = [];
+    for (int i = 0; i < files.length; i++)
+      if (checkBoxes[i])
+        chosenFiles.add(files[i]);
+    String fileToShare;
+    if (chosenFiles.isEmpty)
+      return "";
+    if (chosenFiles.length == 1)
+      fileToShare = chosenFiles[0];
+    else {
+      var encoder = ZipFileEncoder();
+      var path = (await getApplicationDocumentsDirectory()).path + '/stats_${DateTime.now().year}:${DateTime.now().month}:${DateTime.now().day}:${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}.zip';
+    encoder.create(path);
+    chosenFiles.forEach((element) { encoder.addFile(File(element)); });
+    encoder.close();
+    fileToShare = path;
+  }
+    return fileToShare;
+  }
 
-  List<String> checkBoxes = [];
+  Future<void> shareFiles() async {
+    var fileToShare = await getChosenFiles();
+    if (fileToShare.isEmpty)
+      return;
+    String fileName = fileToShare.substring(fileToShare.lastIndexOf('/') + 1);
+    await Share.file(fileName.substring(fileName.lastIndexOf('.')), fileName, File(fileToShare).readAsBytesSync(), fileName.endsWith('.zip') ? 'application/zip' : 'text/plain')
+        .then((value) =>
+      fileName.endsWith('.zip') ? File(fileToShare).delete() : {}
+    );
+  }
+
+  deleteFiles() async {
+    var chosenFiles = [];
+    for (int i = 0; i < files.length; i++)
+      if (checkBoxes[i]) {
+        var file = File(files[i]);
+        if (file.existsSync()) {
+          file.delete();
+        }
+      }
+    loadStats();
+  }
+
+  download() async {
+
+    var status = await Permission.storage.status;
+    if (status.isUndetermined || status.isDenied) {
+      status = await Permission.storage.request();
+    }
+
+    var filePath = await getChosenFiles();
+    if (filePath.isNotEmpty) {
+      var path = '';
+      if (Platform.isIOS) {
+        path = (await getDownloadsDirectory()).path;
+      } else if (Platform.isAndroid) {
+        path = '/storage/emulated/0/Download/';
+      }
+      var f = File(filePath);
+      f.copy(path + filePath.substring(filePath.lastIndexOf('/') + 1)).then((value) => filePath.endsWith('.zip') ? File(filePath).delete() : {});
+      Scaffold.of(context).showSnackBar(SnackBar(
+        content: Text("Saved to downloads"),
+        backgroundColor: Colors.orange,
+        duration: Duration(milliseconds: 800),
+      ));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: Container(
-          alignment: Alignment.center,
-          color: Colors.amber,
-          child: FutureBuilder(
-            future: Settings.loadStats(),
-            builder: (context, snapshot) =>
-            snapshot.connectionState == ConnectionState.done ?
-            ListView.builder(
-                itemCount: snapshot.data.length,
+        alignment: Alignment.center,
+        color: Colors.amber,
+        child: loaded
+            ? ListView.builder(
+                itemCount: checkBoxes.length,
                 itemBuilder: (BuildContext context, int index) {
-                  checkBoxes = List(snapshot.data.length);
-                  checkBoxes.fillRange(0, snapshot.data.length, '');
                   return Card(
                     color: Colors.orangeAccent.withOpacity(0.8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(8))),
                     child: CheckboxListTile(
-                      title:  FittedBox(fit: BoxFit.fitWidth,child: Text(snapshot.data[index].toString().split('/').last, style: TextStyle(color: Colors.redAccent))),
-                      value: checkBoxes[index].isNotEmpty,
+                      activeColor: Colors.redAccent,
+                      dense: true,
+                      isThreeLine: false,
+                      title: FittedBox(
+                          fit: BoxFit.fill,
+                          alignment: Alignment.centerLeft,
+                          child: Text(files[index].split('/').last.replaceAll('.txt', ''),
+                              style: TextStyle(color: Colors.redAccent, fontSize: 20))),
+                      value: checkBoxes[index],
                       onChanged: (value) {
                         setState(() {
-                          checkBoxes[index] = snapshot.data[index].toString().split('/').last;
+                          checkBoxes[index] = !checkBoxes[index];
                         });
-
                       },
                     ),
                   );
-                }) : Text('Loading...'),
-          )
+                })
+            :  SizedBox(
+        width: 300,
+        height: 300,
+              child: CircularProgressIndicator(
+                strokeWidth: 16,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.redAccent),
+              ),
+            ),
       ),
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.share),
-        onPressed: widget.share,
-
+      floatingActionButton: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ConfirmationSlider(
+              height: 60,
+              width: 200,
+              shadow: BoxShadow(color: Color.fromARGB(0, 0, 0, 0)),
+              backgroundColor: Colors.redAccent[100],
+              backgroundShape: BorderRadius.circular(30),
+              icon: Icons.delete,
+              foregroundColor: Colors.redAccent,
+              onConfirmation: () => deleteFiles(),
+              onStarted:(){}
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SizedBox(
+              width: 60,
+              height: 60,
+              child: RaisedButton(
+                child: Icon(Icons.file_download),
+                color: Colors.green,
+                shape: CircleBorder(),
+                onPressed: download,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SizedBox(
+              width: 60,
+              height: 60,
+              child: RaisedButton(
+                child: Icon(Icons.share),
+                color: Colors.blueAccent,
+                shape: CircleBorder(),
+                onPressed: shareFiles,
+              ),
+            ),
+          )
+        ],
       ),
     );
+  }
+
+  loadStats(){
+    Settings.loadStats().then((data) {
+      setState(() {
+        loaded = true;
+        checkBoxes = List(data.length);
+        checkBoxes.fillRange(0, data.length, false);
+        files = data;
+      });
+    });
   }
 
   @override
   void initState() {
+    loadStats();
     super.initState();
   }
-
 }

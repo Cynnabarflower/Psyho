@@ -22,6 +22,7 @@ class Keyboard extends StatefulWidget {
   setInputField(InputField inputField) {
     this.inputField = inputField;
     inputField.text = _editText;
+    return this;
   }
 
   Keyboard(
@@ -424,21 +425,23 @@ class Layout extends StatefulWidget {
     var tapped0 = widget.tapped;
     tapped = tapped ?? (s) {
       widget._editText = "";
+      if (s is List)
+        s = s[0];
       tapped0(s);
     };
-    double borderRadius = 16;
-    double margin = 4;
 
     var params =
     _getFitParams(3, 4, w, h, ratio: 2.6, strict: false, context: context);
     var size = params.key;
+    double borderRadius = min(size.height, size.height) * 0.15;
+    double margin =  min(size.height, size.height) * 0.05;
     double ratio = params.value;
     widget.updateSize((size.width) * 3, size.height * 4);
     return Column(children: [
       getButtonsLine([
-        _KeyboardButton(tapped, text: 'Декабрь', value: 'декабря', color: Colors.lightBlueAccent[100]),
-        _KeyboardButton(tapped, text: 'Январь', value: 'января', color: Colors.lightBlueAccent[100]),
-        _KeyboardButton(tapped, text: 'Февраль', value: 'февраля', color: Colors.lightBlueAccent[100])
+        _KeyboardButton(tapped, text: 'Декабрь', value: ['декабрь','декабря'], color: Colors.lightBlueAccent[100]),
+        _KeyboardButton(tapped, text: 'Январь', value: ['январь','января'], color: Colors.lightBlueAccent[100]),
+        _KeyboardButton(tapped, text: 'Февраль', value: ['февраль', 'февраля'], color: Colors.lightBlueAccent[100])
       ],
           borderRadius: borderRadius,
           margin: margin,
@@ -446,9 +449,9 @@ class Layout extends StatefulWidget {
           ratio: ratio,
           fontSize: 0.5),
       getButtonsLine([
-        _KeyboardButton(tapped, text: 'Март',value: 'марта', color: Colors.lime),
-        _KeyboardButton(tapped, text: 'Апрель',value: 'апреля', color: Colors.lime),
-        _KeyboardButton(tapped, text: 'Май',value: 'мая', color: Colors.lime)
+        _KeyboardButton(tapped, text: 'Март',value: ['март', 'марта'], color: Colors.lime),
+        _KeyboardButton(tapped, text: 'Апрель',value: ['апрель', 'апреля'], color: Colors.lime),
+        _KeyboardButton(tapped, text: 'Май',value: ['май', 'мая'], color: Colors.lime)
       ],
           borderRadius: borderRadius,
           margin: margin,
@@ -456,9 +459,9 @@ class Layout extends StatefulWidget {
           ratio: ratio,
           fontSize: 0.5),
       getButtonsLine([
-        _KeyboardButton(tapped, text: 'Июнь',value: 'июня', color: Colors.green),
-        _KeyboardButton(tapped, text: 'Июль',value: 'июля', color: Colors.green),
-        _KeyboardButton(tapped, text: 'Август',value: 'августа', color: Colors.green)
+        _KeyboardButton(tapped, text: 'Июнь',value: ['июнь', 'июня'], color: Colors.green),
+        _KeyboardButton(tapped, text: 'Июль',value: ['июль', 'июля'], color: Colors.green),
+        _KeyboardButton(tapped, text: 'Август',value: ['август', 'августа'], color: Colors.green)
       ],
           borderRadius: borderRadius,
           margin: margin,
@@ -466,9 +469,9 @@ class Layout extends StatefulWidget {
           ratio: ratio,
           fontSize: 0.5),
       getButtonsLine([
-        _KeyboardButton(tapped, text: 'Сентябрь', value: 'сентября', color: Colors.orangeAccent),
-        _KeyboardButton(tapped, text: 'Октябрь', value: 'октября', color: Colors.orangeAccent),
-        _KeyboardButton(tapped, text: 'Ноябрь', value: 'ноября', color: Colors.orangeAccent)
+        _KeyboardButton(tapped, text: 'Сентябрь', value: ['сентябрь', 'сентября'], color: Colors.orangeAccent),
+        _KeyboardButton(tapped, text: 'Октябрь', value: ['октябрь', 'октября'], color: Colors.orangeAccent),
+        _KeyboardButton(tapped, text: 'Ноябрь', value: ['ноябрь', 'ноября'], color: Colors.orangeAccent)
       ],
           borderRadius: borderRadius,
           margin: margin,
@@ -499,11 +502,15 @@ class Layout extends StatefulWidget {
 
     var tappedMonth = (s) {
       if (widget._editText.length > 0 && isDigit(widget._editText, 0)) {
+        if (s is List)
+          s = s[1];
         if (widget._editText.length > 1 && isDigit(widget._editText, 1)) {
           widget._editText = widget._editText.substring(0, 2) + ' ' + s;
         } else
           widget._editText = widget._editText.substring(0, 1) + ' ' + s;
       } else {
+        if (s is List)
+          s = s[1];
         widget._editText = s;
       }
       widget.tapped('');
@@ -545,8 +552,8 @@ class Layout extends StatefulWidget {
     widget.updateSize((size.width) * 2, size.height * 1);
     return Column(children: [
       getButtonsLine([
-        _KeyboardButton(tapped, value: 'Boy', image: Image.asset('assets/male.png')),
-        _KeyboardButton(tapped, value: 'Girl', image: Image.asset('assets/female.png')),
+        _KeyboardButton(tapped, value: 'M', image: Image.asset('assets/male.png')),
+        _KeyboardButton(tapped, value: 'F', image: Image.asset('assets/female.png')),
       ],
           borderRadius: 8,
           margin: margin,
@@ -560,11 +567,12 @@ class Layout extends StatefulWidget {
     erase = erase ?? widget.erase;
     tapped = tapped ??  widget.tapped;
     var canChange = widget.canChange;
-    double margin = 4;
 
     var params =
         _getFitParams(3, 4, w, h, ratio: 1, strict: true, context: context);
     var size = params.key;
+    double borderRadius = min(size.height, size.height) * 0.05;
+    double margin =  min(size.height, size.height) * 0.05;
     double ratio = params.value;
     widget.updateSize((size.width) * 3, size.height * 4);
     return Column(children: [
@@ -1254,17 +1262,19 @@ class InputField extends StatefulWidget {
   String template;
   Function backward;
   Function forward;
+  int minTextLength = 4;
+  bool showButtons = true;
 
 
   InputField({this.isPassword, this.textHeightPercent, this.textSizePercent,
-      this.text, this.forward, this.backward, this.template}) {
+      this.text, this.forward, this.backward, this.template, this.minTextLength, this.showButtons}) {
     textHeightPercent = textHeightPercent ?? 1;
     textSizePercent = textSizePercent ?? 0.8;
     text = text ?? '';
     isPassword = isPassword ?? false;
-    forward = forward ?? () {};
-    backward = backward ?? () {};
     template = template ?? '&text';
+    minTextLength = minTextLength ?? 4;
+    showButtons = showButtons ?? true;
   }
 
   @override
@@ -1291,6 +1301,13 @@ class _InputFieldState extends State<InputField> {
         builder: (context, constraints) {
           h = constraints.maxHeight;
           w = constraints.maxWidth;
+          if (widget.showButtons) {
+            if (widget.forward != null)
+              w -= constraints.maxWidth * 0.1;
+            if (widget.backward != null)
+              w -= constraints.maxWidth * 0.1;
+
+          }
           visibleText = widget.template.replaceAll("&text", widget.isPassword
               ? widget.text.replaceAll(RegExp('[0-9]'), '*')
               : widget.text);
@@ -1303,8 +1320,8 @@ class _InputFieldState extends State<InputField> {
           textSize = min(
               textHeight * widget.textSizePercent,
               w /
-                  (1.3 *  visibleText.length -
-                      visibleText.replaceAll(RegExp("([ШЩМЖЫQWM])"), "").length *
+                  (1.3 *  max(visibleText.length, widget.minTextLength) -
+                      max(visibleText.replaceAll(RegExp("([ШЩМЖЫQWM])"), "").length, widget.minTextLength) *
                           0.3) *
                   1.0);
           return GestureDetector(
@@ -1324,24 +1341,21 @@ class _InputFieldState extends State<InputField> {
                   dragDelta = 0;
                 });
               },
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  Container(
-                      width: constraints.maxWidth,
-                      height: textHeight,
-                      alignment: Alignment.center,
-                      child: Text(
-                        visibleText
-                          ,
-
-                          style: TextStyle(
-                            fontSize: textSize,
-                            color: Colors.redAccent,
-                            textBaseline: TextBaseline.alphabetic,
-                          ))),
-                ]),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Text(
+                        visibleText,
+                        style: TextStyle(
+                          fontSize: textSize,
+                          color: Colors.redAccent,
+                          textBaseline: TextBaseline.alphabetic,
+                        )),
+                  ]),
+            ),
           );
         },
     );
