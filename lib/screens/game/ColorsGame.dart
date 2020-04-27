@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -15,21 +14,19 @@ import 'package:psycho_app/screens/settings/settings.dart';
 import 'AnswerButton.dart';
 import 'dart:io' show Platform;
 
-class Game extends StatefulWidget {
+class ColorsGame extends StatefulWidget {
   String folderName;
   int level = 0;
 
   @override
-  _GameState createState() => _GameState();
+  _ColorsGameState createState() => _ColorsGameState();
 
-  Game({this.folderName = 'assets/balloons/', this.level = 0}) {
-    if (!this.folderName.endsWith('/')) this.folderName += "/";
-  }
+  Game() {}
 }
 
 enum ANSWERS { SAME, DIFFERENT, NONE }
 
-class _GameState extends State<Game> with TickerProviderStateMixin {
+class _ColorsGameState extends State<ColorsGame> with TickerProviderStateMixin {
   List<AssetImage> images = [];
   int currentImageNumber = 0;
   int countDown = 3;
@@ -43,8 +40,6 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
   List<ANSWERS> answers = [];
   List<Statistics> statistics = [];
   List<AssetImage> resetImages = [];
-  List<Color> colorsGameColors = [];
-  int currentColorIndex;
   AssetImage plusImage;
   Timer timer;
   Offset handOffset = Offset(9999, 9999);
@@ -62,7 +57,6 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
   bool plus = false;
   bool buttonsEnabled = true;
   bool showPrevious = false;
-  int colorsGameLength = 0;
   Duration handDuration = Duration(milliseconds: 600);
   bool SHOW_HAND = true;
   bool SHOW_PREVIOUS = true;
@@ -71,8 +65,6 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
     Settings.read('tutorial').then((value) {
       SHOW_HAND = value['showHand'];
       SHOW_PREVIOUS = value['showTumb'];
-      colorsGameLength = int.parse(value['colorsGameLength']);
-      colorsGameColors = value['colorsGameColors'].toString().split(',').map((e) => Color(int.parse(e))).toList();
     });
 
     Settings.read('main').then((value) {
@@ -85,7 +77,7 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
 
   @override
   void initState() {
-    imagesLoaded = loadSettings().then((value) => _loadAssets());
+    imagesLoaded = _loadAssets().then((value) => loadSettings());
     super.initState();
 
     controller = AnimationController(
@@ -194,7 +186,6 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
                 } else {
                   print('handUpdate');
                 }
-
                 return Stack(
                   key: _screen,
                   children: [
@@ -202,11 +193,98 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
                       children: [
                         Expanded(
                           flex: 3,
-                          child: getMainWidget(),
+                          child: AbsorbPointer(
+                            absorbing: !buttonsEnabled,
+                            child: Stack(
+                              children: <Widget>[
+                                Transform.rotate(
+                                  angle: answers[currentImageNumber] ==
+                                          ANSWERS.NONE
+                                      ? 0
+                                      : dragDelta * ROTATE_STEP,
+                                  alignment: Alignment.bottomCenter,
+                                  child: Container(
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xffffffff),
+                                    ),
+                                    child: GestureDetector(
+                                      onHorizontalDragStart: (d) {
+                                        print('drag start');
+                                      },
+                                      onHorizontalDragUpdate: (details) {
+                                        setState(() {
+                                          dragDelta += details.primaryDelta;
+                                          print(dragDelta);
+                                        });
+                                      },
+                                      onHorizontalDragEnd: (details) {
+                                        setState(() {
+                                          if (dragDelta < -50) {
+                                            choiceMade(ANSWERS.DIFFERENT);
+                                          } else if (dragDelta > 50) {
+                                            choiceMade(ANSWERS.SAME);
+                                          }
+                                          dragDelta = 0;
+                                        });
+                                      },
+                                      onTap: () => {print('tapped')},
+                                      child: Image(
+                                          image: plus
+                                              ? plusImage
+                                              : images[currentImageNumber]),
+                                    ),
+                                  ),
+                                ),
+                                Visibility(
+                                  visible:
+                                      showPrevious && currentImageNumber > 0,
+                                  child: Align(
+                                    alignment: Alignment.topLeft,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Image(
+                                          width: 120,
+                                          height: 120,
+                                          image: currentImageNumber > 0
+                                              ? images[currentImageNumber - 1]
+                                              : plusImage),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                         Expanded(
                           flex: 1,
-                          child: getAnswerButtons(),
+                          child: Visibility(
+                            visible: true,
+                            //answers[currentImageNumber] != ANSWERS.NONE,
+                            child: Row(children: [
+                              Expanded(
+                                  key: _buttonDifferent,
+                                  flex: 1,
+                                  child: AnswerButton(
+                                      tapped: () =>
+                                          {choiceMade(ANSWERS.DIFFERENT)},
+                                      enabled: buttonsEnabled,
+                                      image: AssetImage('assets/close.png'),
+                                      backgroundColor: Color(0x88880000),
+                                      shapeColor: Color(0x99990000),
+                                      shape: BoxShape.circle)),
+                              Expanded(
+                                  key: _buttonSame,
+                                  flex: 1,
+                                  child: AnswerButton(
+                                      tapped: () => choiceMade(ANSWERS.SAME),
+                                      enabled: buttonsEnabled,
+                                      image: AssetImage('assets/correct.png'),
+                                      backgroundColor: Color(0x88008800),
+                                      shapeColor: Color(0x99009900),
+                                      shape: BoxShape.circle))
+                            ]),
+                          ),
                         )
                       ],
                     ),
@@ -254,138 +332,6 @@ class _GameState extends State<Game> with TickerProviderStateMixin {
                 );
               }
             }),
-      ]),
-    );
-  }
-
-  Widget getMainWidget() {
-    currentColorIndex = null;
-    if (colorsGameLength != null && colorsGameLength > 0) {
-      colorsGameLength--;
-      var random = math.Random();
-      var top = random.nextDouble();
-      var left = random.nextDouble();
-      var w = random.nextDouble() / 4 + 40;
-      var h = random.nextDouble() / 4 + 40;
-      currentColorIndex = random.nextInt(colorsGameColors.length - 1);
-      return LayoutBuilder(
-        builder: (context, constraints) => Stack(children: [
-          AnimatedPositioned(
-            top: max(constraints.maxHeight * top - h, 0),
-            left: max(constraints.maxWidth * left - w, 0),
-            width: w,
-            height: h,
-            child: Container(color: colorsGameColors[currentColorIndex]),
-            duration: Duration(milliseconds: 1000),
-          )
-        ]),
-      );
-    }
-
-    return AbsorbPointer(
-      absorbing: !buttonsEnabled,
-      child: Stack(
-        children: <Widget>[
-          Transform.rotate(
-            angle: answers[currentImageNumber] == ANSWERS.NONE
-                ? 0
-                : dragDelta * ROTATE_STEP,
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: const Color(0xffffffff),
-              ),
-              child: GestureDetector(
-                onHorizontalDragUpdate: (details) {
-                  setState(() {
-                    dragDelta += details.primaryDelta;
-                    print(dragDelta);
-                  });
-                },
-                onHorizontalDragEnd: (details) {
-                  setState(() {
-                    if (dragDelta < -50) {
-                      choiceMade(ANSWERS.DIFFERENT);
-                    } else if (dragDelta > 50) {
-                      choiceMade(ANSWERS.SAME);
-                    }
-                    dragDelta = 0;
-                  });
-                },
-                child:
-                    Image(image: plus ? plusImage : images[currentImageNumber]),
-              ),
-            ),
-          ),
-          Visibility(
-            visible: showPrevious && currentImageNumber > 0,
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Image(
-                    width: 120,
-                    height: 120,
-                    image: currentImageNumber > 0
-                        ? images[currentImageNumber - 1]
-                        : plusImage),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget getAnswerButtons() {
-    if (currentColorIndex != null) {
-      var currentIndex = Random().nextInt(3);
-      var indexes = [currentIndex];
-      return Wrap(
-        alignment: WrapAlignment.spaceEvenly,
-        children: List.generate(
-            4,
-            (index) => AnswerButton(
-                tapped: () => choiceMade(ANSWERS.SAME),
-                enabled: true,
-                backgroundColor: index == currentIndex
-                    ? colorsGameColors[currentColorIndex]
-                    : colorsGameColors[() {
-                  var i = Random().nextInt(colorsGameColors.length-1);
-                  while (!indexes.contains(i)) {
-                    i = Random().nextInt(colorsGameColors.length-1);
-                  }
-                  indexes.add(i);
-                  return i;
-                }.call()])),
-      );
-    }
-
-    return Visibility(
-      visible: true,
-      //answers[currentImageNumber] != ANSWERS.NONE,
-      child: Row(children: [
-        Expanded(
-            key: _buttonDifferent,
-            flex: 1,
-            child: AnswerButton(
-                tapped: () => {choiceMade(ANSWERS.DIFFERENT)},
-                enabled: buttonsEnabled,
-                image: AssetImage('assets/close.png'),
-                backgroundColor: Color(0x88880000),
-                shapeColor: Color(0x99990000),
-                shape: BoxShape.circle)),
-        Expanded(
-            key: _buttonSame,
-            flex: 1,
-            child: AnswerButton(
-                tapped: () => choiceMade(ANSWERS.SAME),
-                enabled: buttonsEnabled,
-                image: AssetImage('assets/correct.png'),
-                backgroundColor: Color(0x88008800),
-                shapeColor: Color(0x99009900),
-                shape: BoxShape.circle))
       ]),
     );
   }

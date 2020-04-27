@@ -9,14 +9,23 @@ import 'package:psycho_app/custom_widgets/wave/config.dart';
 import 'dart:math' as math;
 
 import 'package:psycho_app/custom_widgets/wave/wave.dart';
+import 'package:psycho_app/screens/game/Game2.dart';
 import 'package:psycho_app/screens/game/game.dart';
 import 'package:psycho_app/screens/register/register.dart';
 import 'package:psycho_app/screens/settings/settings.dart';
 import 'package:psycho_app/screens/settings/temp.dart';
 
 class MainMenu extends StatefulWidget {
+
+  TabController tabController;
+  String name;
+
   @override
   _MainMenuState createState() => _MainMenuState();
+
+  MainMenu({this.tabController, this.name}) {
+  }
+
 }
 
 class _MainMenuState extends State<MainMenu>
@@ -48,6 +57,7 @@ class _MainMenuState extends State<MainMenu>
 
   @override
   void initState() {
+
     loadSettings().then((value) => setState((){}));
     super.initState();
     animationController =
@@ -116,7 +126,7 @@ class _MainMenuState extends State<MainMenu>
                     onTap: (){
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => Game(folderName: "assets/tBalloons/",)),
+                        MaterialPageRoute(builder: (context) => Game2(folderName: "assets/tBalloons/",)),
                       );
                     },
                     onTapDown: (tapDownDetails) {
@@ -181,12 +191,14 @@ class _MainMenuState extends State<MainMenu>
                 alignment: Alignment.bottomCenter,
                 child:
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisSize: MainAxisSize.max,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: <Widget>[
                           SizedBox(
                             width: 60,
@@ -203,10 +215,10 @@ class _MainMenuState extends State<MainMenu>
                               },
                             ),
                           ),
-                          welcomeText == null ? Container() : Container(
+                          widget.name == null ? Container() : Container(
                             margin: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                            child: Text(welcomeText, style: TextStyle(
-                                fontSize: 180/(max(welcomeText.length, 5)),
+                            child: Text(widget.name, style: TextStyle(
+                                fontSize: 180/(max(widget.name.length, 5)),
                                 color: Colors.redAccent,
                                 shadows: [Shadow(color: Colors.amber,
                                     offset: Offset(2, 2))]

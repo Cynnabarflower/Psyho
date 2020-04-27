@@ -31,6 +31,17 @@ var PARAMS = {
         {"yes": true},
         {"no": false}
       ]
+    },
+    "colorsGameLength": {
+      "name": "Color game length",
+      "values": [],
+      "langs": [
+        KeyboardLangs.numeric.toString()
+      ]
+    },
+    "colorsGameColors": {
+      "name": "Available colors",
+      "values": [{'def': '0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0x00ffff, 0xff00ff'}]
     }
   },
   "main": {
@@ -287,7 +298,6 @@ class SettingsPage extends StatefulWidget {
   void _save(String key, dynamic value) {
     cSettings[key] = value;
     Settings.save(name, cSettings);
-    Settings.save(name, cSettings);
   }
 
   SettingsPage(this.name, this.map) {}
@@ -300,7 +310,6 @@ class _SettingsPageState extends State<SettingsPage> {
   List<Widget> list = [];
   Future<bool> loaded;
   String editText = '';
-  Param currentParam;
 
   @override
   Widget build(BuildContext context) {
@@ -316,36 +325,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 ListView(
                     padding: EdgeInsets.symmetric(horizontal: 0, vertical: 8),
                     children: fillSettings()),
-                LayoutBuilder(
-                  builder: (context, constraints) => currentParam == null
-                      ? Container(
-                          width: 0,
-                          height: 0,
-                        )
-                      : Container(
-                          alignment: Alignment.bottomCenter,
-                          child: SizedBox(
-                            width: MediaQuery.of(context).size.width,
-                            height: MediaQuery.of(context).size.height * 2 / 3,
-                            child: Keyboard(
-                              showInputField: false,
-                              layouts: currentParam.layouts,
-                              onEdited: (val) {
-                                setState(() {
-                                  currentParam.value = val;
-                                  widget._save(
-                                      currentParam.id, currentParam.value);
-                                  fillSettings();
-                                });
-                                print(val);
-                              },
-                              initValue: currentParam == null
-                                  ? ''
-                                  : currentParam.value.toString(),
-                            ),
-                          ),
-                        ),
-                )
               ],
             );
           else
@@ -385,9 +364,7 @@ class _SettingsPageState extends State<SettingsPage> {
             (value['values'].isNotEmpty ? value['values'] : ""),
         value['langs'],
         onEditing: (param) {
-          setState(() {
-            currentParam = param;
-          });
+
         },
       ));
     });
@@ -466,7 +443,6 @@ class _ParamState extends State<Param> {
 
   @override
   Widget build(BuildContext context) {
-    print('param built');
     return Padding(
       padding: EdgeInsets.all(8),
       child: Row(
@@ -536,8 +512,31 @@ class _ParamState extends State<Param> {
             onTap: () {
               setState(() {
                 editing = !editing;
-                if (widget.onEditing != null)
-                  widget.onEditing(editing ? widget : null);
+                if (editing) {
+                  showModalBottomSheet(
+                      barrierColor: Colors.black.withAlpha(1),
+                      backgroundColor: Colors.blue,
+                      context: context,
+                      builder: (context) =>
+                  Keyboard(
+                    showInputField: true,
+                    layouts: widget.layouts,
+                    onEdited: (val) {
+                      setState(() {
+                        widget.value = val;
+                      });
+                      print(val);
+                    },
+                    initValue: widget.value.toString(),
+                  )
+                ).then((value) {
+                  setState(() {
+                    widget._save(
+                        widget.id, widget.value);
+                    editing = !editing;
+                  });
+                  });
+                }
               });
             },
             child: Container(

@@ -18,6 +18,7 @@ class Keyboard extends StatefulWidget {
   bool canChange = false;
   String _editText = '';
   InputField inputField;
+  bool standalone = true;
 
   setInputField(InputField inputField) {
     this.inputField = inputField;
@@ -33,10 +34,12 @@ class Keyboard extends StatefulWidget {
       this.visible = true,
       this.canChange,
       this.showInputField = false,
-      this.done}) {
+      this.done,
+      this.standalone}) {
     _editText = initValue.toString();
     isPassword = isPassword ?? false;
     showInputField = showInputField ?? false;
+    standalone = standalone ?? true;
     done = done ?? () {};
   }
 
@@ -57,22 +60,27 @@ class _KeyboardState extends State<Keyboard> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.child != null) {
-      return Stack(
-        children: [widget.child, widget.visible ? _getKeyboard() : Container()],
-      );
-    } else if (widget.visible) {
-      return Expanded(
-        child: LayoutBuilder(
-          builder: (context, constraints) => Column(
+    if (widget.visible) {
+      if (!widget.standalone)
+        return Wrap(
+          children: [
+            Container(child: _getKeyboard())
+          ],
+        );
+
+
+      return LayoutBuilder(
+        builder: (context, constraints) => SizedBox(
+          height: MediaQuery.of(context).size.height/3,
+          child: Column(
             children: <Widget>[
+              widget.showInputField && widget.inputField != null?
               Flexible(
                   flex: 1,
-                  child: widget.showInputField && widget.inputField != null?
-                  ()  {widget.inputField.text = widget._editText; return widget.inputField; }.call()
-                  :
-                  Container()
-              ),
+                  child:
+                  () {widget.inputField.text = widget._editText; return widget.inputField; }.call()
+              )            :
+              Container(),
               Flexible(
                   flex: constraints.maxWidth > constraints.maxHeight ? 1 : 1,
                   child: Container(child: _getKeyboard()))
@@ -103,6 +111,7 @@ class _KeyboardState extends State<Keyboard> {
       element._editText = widget._editText;
       element.onEdited = (val) {
         setState(() {
+          widget._editText = val;
           widget.onEdited(val);
         });
       };
@@ -546,7 +555,7 @@ class Layout extends StatefulWidget {
     double margin = 4;
 
     var params =
-        _getFitParams(2, 1, w, h, ratio: 1, strict: true, context: context);
+        _getFitParams(2, 1, w, h, ratio: 1, strict: false, context: context);
     var size = params.key;
     double ratio = params.value;
     widget.updateSize((size.width) * 2, size.height * 1);
@@ -1052,6 +1061,7 @@ class _KeyboardLayoutState extends State<Layout> {
   Widget build(BuildContext context) {
     widget.erase = erase;
     widget.tapped = tapped;
+
     return LayoutBuilder(builder: (context, constraints) {
       w = constraints.maxWidth -
           widget.padding.horizontal -

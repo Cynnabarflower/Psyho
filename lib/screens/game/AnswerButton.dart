@@ -34,19 +34,19 @@ class _AnswerButtonState extends State<AnswerButton> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: widget.backgroundColor.withOpacity(widget.enabled ? 0.6 : 0.3),
-      ),
-      child: GestureDetector(
-          onTap: widget.enabled ? widget.tapped : ()=>{},
-          child: Container(
+    return GestureDetector(
+      onTap: widget.enabled ? widget.tapped : ()=>{},
+      child: Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: widget.backgroundColor.withOpacity(widget.enabled ? 0.6 : 0.3),
+        ),
+        child: widget.shape == null ? Container() : Container(
             padding: EdgeInsets.all(32),
             margin: EdgeInsets.all(8),
             alignment: Alignment.center,
             decoration: BoxDecoration(color: widget.shapeColor.withOpacity(widget.enabled ? 0.6 : 0.3), shape: widget.shape),
-              child: LayoutBuilder(
+              child: widget.image == null ? Container() : LayoutBuilder(
                 builder: (context, constraints) =>
                 Image(
                   width: min(constraints.maxWidth, constraints.maxHeight) * 0.9,
@@ -56,7 +56,8 @@ class _AnswerButtonState extends State<AnswerButton> {
                     image: widget.image),
               ),
 
-          )),
+          ),
+      ),
     );
   }
 }
