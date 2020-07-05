@@ -30,17 +30,16 @@ class _DateChooserState extends State<DateChooser> {
     return Wrap(
       alignment: WrapAlignment.center,
       children: [Container(
-        padding: EdgeInsets.all(8),
         margin: EdgeInsets.all(8),
         decoration: BoxDecoration(
-            color: Colors.amberAccent,
+//            color: Colors.lightBlue[400].withOpacity(0.3),
             borderRadius: BorderRadius.all(Radius.circular(8))),
 
         child: DatePickerWidget(
           pickerTheme: DateTimePickerTheme(
             itemHeight: 200,
-            itemTextStyle: GoogleFonts.comfortaa().copyWith(fontSize: 88, color: Colors.redAccent),
-            backgroundColor: Colors.amberAccent,
+            itemTextStyle: GoogleFonts.comfortaa().copyWith(fontSize: 88, color: Colors.white),
+            backgroundColor: Colors.lightBlue[400].withOpacity(0.4),
             pickerHeight: 238
           ),
           dateFormat: 'dd-MMM-yyyy',

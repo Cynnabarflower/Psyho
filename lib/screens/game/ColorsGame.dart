@@ -337,16 +337,16 @@ class _ColorsGameState extends State<ColorsGame> with TickerProviderStateMixin {
   }
 
   void choiceMade(ANSWERS answer) {
-    statistics.add(Statistics(
-        DateTime.now().difference(startTime).inMicroseconds,
-        answers[currentImageNumber] == answer ||
-            answers[currentImageNumber] == ANSWERS.NONE));
+//    statistics.add(Statistics(
+//        DateTime.now().difference(startTime).inMicroseconds,
+//        answers[currentImageNumber] == answer ||
+//            answers[currentImageNumber] == ANSWERS.NONE));
 
     if (currentImageNumber >= images.length || currentImageNumber > 3) {
-      Settings.saveStats(statistics, DateTime.now().toIso8601String());
+//      Settings.saveStats(statistics, DateTime.now().toIso8601String());
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => Reward(statistics)),
+        MaterialPageRoute(builder: (context) => Reward('','', null)),
       );
     } else {
       setState(() {

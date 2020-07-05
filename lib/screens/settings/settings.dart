@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:psycho_app/custom_widgets/keyboard/Keyboard.dart';
 import 'package:psycho_app/custom_widgets/slideToConfirm/slideToConfirm.dart';
+import 'package:psycho_app/screens/game/Statistics.dart';
 import 'package:psycho_app/screens/main/main_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:esys_flutter_share/esys_flutter_share.dart';
@@ -114,7 +115,7 @@ class Settings extends StatefulWidget {
 
   Map<String, Map<String, String>> defaultSettings() {}
 
-  static read(String key) async {
+  static Future<Map<String, dynamic>> read(String key) async {
     final prefs = await SharedPreferences.getInstance();
     final value = prefs.getString(key);
     Map<String, dynamic> settings = {};
@@ -135,7 +136,7 @@ class Settings extends StatefulWidget {
     return value != null ? json.decode(value) : Map<String, dynamic>();
   }
 
-  static saveStats(List<dynamic> stats, time) async {
+  static saveStats(Statistics stats, time) async {
     final directory = await Directory(
             (await getApplicationDocumentsDirectory()).path + '/stats/')
         .create();
@@ -144,8 +145,7 @@ class Settings extends StatefulWidget {
         "${directory.path}${user['name']}_${user['sex']}_${user['age']}_${user['bday']}_${time.toString()}.txt"
     );
 
-    file
-        .writeAsString(stats.fold(
+    file.writeAsString(stats.answers.fold(
             "${user['name']}\n${user['sex']}\n${user['bday']}\n${user['bday']}\n${time.toString()}",
             (previousValue, element) =>
                 previousValue + '\n' + element.toString()))
@@ -168,6 +168,15 @@ class Settings extends StatefulWidget {
     final prefs = await SharedPreferences.getInstance();
     prefs.setString(key, json.encode(value));
     print('saved $value');
+  }
+
+  static setParam(String key, String name, value) async {
+    await Settings.read(key).then(
+        (v) {
+          v[name] = value;
+          save(key, v);
+        }
+    );
   }
 }
 
@@ -217,9 +226,9 @@ class _SettingsState extends State<Settings> {
                     length: 3,
                     child: Scaffold(
                       appBar: AppBar(
-                        backgroundColor: Colors.orange,
+                        backgroundColor: Colors.lightBlueAccent[200],
                         bottom: TabBar(
-                          indicatorColor: Colors.redAccent,
+                          indicatorColor: Colors.white,
 
                           tabs: [
                             Tab(text: "Main"),
@@ -240,38 +249,41 @@ class _SettingsState extends State<Settings> {
                   ));
                 else {
                   print('password:' + password);
-                  return Center(
-                    child: Stack(
-                      children: <Widget>[
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pop(context);
+                  return Stack(
+                    children: <Widget>[
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                            alignment: Alignment.center,
+                            color: Colors.lightBlueAccent[100].withOpacity(0.6),
+                            padding: EdgeInsets.all(8)),
+                      ),
+                      Container(
+                        alignment: Alignment.bottomCenter,
+                        color: Colors.lightBlue[200],
+                        child:
+                      Keyboard(
+                          onEdited: (val) {
+                            print(val);
+                            if (val.length > 4)
+                              val = val.substring(0, 4);
+                            enteredPassword = val;
+                             password == val
+                                ? password = ''
+                                : "";
+                            setState(() {});
                           },
-                          child: Container(
-                              alignment: Alignment.center,
-                              color: Colors.amber,
-                              padding: EdgeInsets.all(8)),
-                        ),
-                        Column(
-                          children: <Widget>[
-                            Keyboard(
-                                onEdited: (val) {
-                                  print(val);
-                                  enteredPassword = val;
-                                   password == val
-                                      ? password = ''
-                                      : "";
-                                  setState(() {});
-                                },
-                                initValue: enteredPassword,
-                                showInputField: true,
-                                layouts: [
-                                  Layout.numeric()
-                                ]).setInputField(InputField(isPassword: true, minTextLength: 4,)),
-                          ],
-                        )
-                      ],
-                    ),
+                          initValue: enteredPassword,
+                          showInputField: true,
+                          standalone: true,
+                          heightRatio: 0.7,
+                          layouts: [
+                            Layout.numeric()
+                          ]).setInputField(InputField(isPassword: true, minTextLength: 4,))
+                      )
+                    ],
                   );
                 }
                 else
@@ -288,6 +300,69 @@ class _SettingsState extends State<Settings> {
       ),
     );
   }
+
+/*  getNameInput({showkb = true, height = 60.0, fontsize = 50.0, context}) {
+    return GestureDetector(
+      onTap: () {
+        showkb
+            ? setState(() {
+          Scaffold.of(context).showBottomSheet<void>(
+                (context) => OrientationBuilder(
+              builder: (context, orientation) {
+                  return Container(
+
+                      width: double.infinity,
+                      color: Colors.transparent,
+                      child: Column(children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Container(
+                              color: Colors.transparent,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          child: Keyboard(
+                            showInputField: true,
+                            standalone: false,
+                            layouts: [Layout.digital()],
+                            onEdited: (val) {
+                              setState(() {
+
+                              });
+                              print(val);
+                            },
+                            initValue: '',
+                          ),
+                        ),
+                      ]));
+              },
+            ),
+            backgroundColor: Colors.lightBlueAccent[100].withOpacity(0.0),
+            elevation: 0,
+          );
+        })
+            : {};
+      },
+      child: Container(
+        padding: EdgeInsets.all(8),
+        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 32),
+        decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.4),
+            borderRadius: BorderRadius.all(Radius.circular(8))),
+        child: Container(
+          height: height,
+          alignment: Alignment.center,
+          child: Text(
+            '',
+            style: TextStyle(fontSize: fontsize, color: Colors.lightBlue),
+          ),
+        ),
+      ),
+    );
+  }
+  */
 }
 
 class SettingsPage extends StatefulWidget {
@@ -316,7 +391,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
         body: WillPopScope(
       child: Container(
-        color: Colors.amber,
+        color: Colors.lightBlueAccent[100].withOpacity(0.6),
         alignment: Alignment.center,
         child: LayoutBuilder(builder: (context, snapshot) {
           if (list != null && list.isNotEmpty)
@@ -325,6 +400,28 @@ class _SettingsPageState extends State<SettingsPage> {
                 ListView(
                     padding: EdgeInsets.symmetric(horizontal: 0, vertical: 8),
                     children: fillSettings()),
+                Container(
+                  alignment: Alignment.bottomRight,
+                  child:
+                  Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: ConfirmationSlider(
+                        height: 60,
+                        width: 300,
+                        shadow: BoxShadow(color: Color.fromARGB(0, 0, 0, 0)),
+                        backgroundColor: Colors.redAccent[100],
+                        backgroundShape: BorderRadius.circular(30),
+                        icon: Icons.delete,
+                        text: 'Reset level stars',
+                        textStyle: TextStyle(fontSize: 20, color: Colors.white),
+                        foregroundColor: Colors.redAccent,
+                        onConfirmation: () {
+                          Settings.setParam('main', 'stats', {});
+                        },
+                        onStarted:(){}
+                    ),
+                  ),
+                ),
               ],
             );
           else
@@ -334,7 +431,8 @@ class _SettingsPageState extends State<SettingsPage> {
       onWillPop: () {
         return Future(() => true);
       },
-    ));
+    ),
+    );
   }
 
   @override
@@ -463,45 +561,8 @@ class _ParamState extends State<Param> {
     );
   }
 
-//  @override
-//  Widget build(BuildContext context) {
-//    return Padding(
-//      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-//      child: Column(
-//        mainAxisSize: MainAxisSize.min,
-//        crossAxisAlignment: CrossAxisAlignment.center,
-//        mainAxisAlignment: MainAxisAlignment.center,
-//        children: <Widget>[
-//          Row(
-//            mainAxisAlignment: editing ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
-//            children: <Widget>[
-//              AnimatedSwitcher(
-//                duration: Duration(milliseconds: 0),
-//                child: editing ? Container() : Padding(
-//                    padding: EdgeInsets.fromLTRB(0, 0, 16, 0),
-//                    child: Text(widget.name)),
-//              ),
-//              getInputWidget(),
-//            ],
-//          ),
-//
-//          Padding(
-//            padding: EdgeInsets.all(8),
-//            child: Keyboard(
-//              initValue: widget.value,
-//                onEdited: (value){
-//                  setState(() {
-//                    widget.value = value;
-//                    widget._save(widget.id, widget.value);
-//                  });
-//                },
-//                layouts: widget.layouts,
-//            visible: editing && widget.layouts.isNotEmpty),
-//          )
-//        ],
-//      ),
-//    );
-//  }
+
+
 
   Widget getInputWidget() {
     if (widget.args.isEmpty) {
@@ -513,8 +574,54 @@ class _ParamState extends State<Param> {
               setState(() {
                 editing = !editing;
                 if (editing) {
-                  showModalBottomSheet(
-                      barrierColor: Colors.black.withAlpha(1),
+                  Scaffold.of(context).showBottomSheet<void>(
+                        (context) => OrientationBuilder(
+                      builder: (context, orientation) {
+                        if (orientation == Orientation.portrait)
+                          return Container(
+                              height: double.infinity,
+                              width: double.infinity,
+                              color: Colors.transparent,
+                              child: Column(children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: ()  {
+                                      setState(() {
+                                        widget._save(
+                                            widget.id, widget.value);
+                                        editing = !editing;
+                                      });
+                                      Navigator.of(context).pop();
+                                      },
+                                    child: Container(
+                                      color: Colors.transparent,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  child: Keyboard(
+                                    showInputField: true,
+                                    standalone: false,
+                                    layouts: widget.layouts,
+                                    onEdited: (val) {
+                                      setState(() {
+                                        widget.value = val;
+                                      });
+                                      print(val);
+                                    },
+                                    initValue: widget.value.toString(),
+                                  ),
+                                ),
+                              ]));
+                        else {
+                          return Container();
+                        }
+                      },
+                    ),
+                    backgroundColor: Colors.lightBlueAccent[100].withOpacity(0.0),
+                    elevation: 0,
+                  );
+                  /*showModalBottomSheet(
                       backgroundColor: Colors.blue,
                       context: context,
                       builder: (context) =>
@@ -535,7 +642,7 @@ class _ParamState extends State<Param> {
                         widget.id, widget.value);
                     editing = !editing;
                   });
-                  });
+                  });*/
                 }
               });
             },
@@ -543,7 +650,7 @@ class _ParamState extends State<Param> {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(8)),
-                color: Colors.orangeAccent,
+                color: Colors.lightBlueAccent[100],
               ),
               child: Container(
                 height: 40,
@@ -571,7 +678,7 @@ class _ParamState extends State<Param> {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(8)),
-                color: Colors.orangeAccent,
+                color: Colors.lightBlueAccent[100],
               ),
               child: Container(
                 height: 40,
@@ -599,9 +706,9 @@ class _ParamState extends State<Param> {
         width: 200,
         child: TextFormField(
           initialValue: widget.value,
-          cursorColor: Colors.redAccent,
+          cursorColor: Colors.green,
           decoration: InputDecoration(
-            focusColor: Colors.redAccent,
+            focusColor: Colors.green,
             filled: true,
             enabledBorder: UnderlineInputBorder(
               borderSide: BorderSide.none,
@@ -618,11 +725,11 @@ class _ParamState extends State<Param> {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.all(Radius.circular(8)),
-        color: Colors.orangeAccent,
+        color: Colors.lightBlueAccent[100],
       ),
       child: ToggleButtons(
-        borderColor: Colors.orange,
-        fillColor: Colors.redAccent,
+        borderColor: Colors.lightBlueAccent[100],
+        fillColor: Colors.green,
         borderWidth: 2,
         children: buttons,
         borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -724,7 +831,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       f.copy(path + filePath.substring(filePath.lastIndexOf('/') + 1)).then((value) => filePath.endsWith('.zip') ? File(filePath).delete() : {});
       Scaffold.of(context).showSnackBar(SnackBar(
         content: Text("Saved to downloads"),
-        backgroundColor: Colors.orange,
+        backgroundColor: Colors.lightBlueAccent[100].withOpacity(0.6),
         duration: Duration(milliseconds: 800),
       ));
     }
@@ -735,24 +842,24 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return Scaffold(
       body: Container(
         alignment: Alignment.center,
-        color: Colors.amber,
+        color: Colors.lightBlueAccent[100].withOpacity(0.6),
         child: loaded
             ? ListView.builder(
                 itemCount: checkBoxes.length,
                 itemBuilder: (BuildContext context, int index) {
                   return Card(
-                    color: Colors.orangeAccent.withOpacity(0.8),
+                    color: Colors.lightBlueAccent[100].withOpacity(0.8),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.all(Radius.circular(8))),
                     child: CheckboxListTile(
-                      activeColor: Colors.redAccent,
+                      activeColor: Colors.green,
                       dense: true,
                       isThreeLine: false,
                       title: FittedBox(
                           fit: BoxFit.fill,
                           alignment: Alignment.centerLeft,
                           child: Text(files[index].split('/').last.replaceAll('.txt', ''),
-                              style: TextStyle(color: Colors.redAccent, fontSize: 20))),
+                              style: TextStyle(color: Colors.black, fontSize: 20))),
                       value: checkBoxes[index],
                       onChanged: (value) {
                         setState(() {
@@ -767,7 +874,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         height: 300,
               child: CircularProgressIndicator(
                 strokeWidth: 16,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.redAccent),
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
               ),
             ),
       ),
@@ -783,6 +890,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
               backgroundColor: Colors.redAccent[100],
               backgroundShape: BorderRadius.circular(30),
               icon: Icons.delete,
+              textStyle: TextStyle(fontSize: 20, color: Colors.white),
               foregroundColor: Colors.redAccent,
               onConfirmation: () => deleteFiles(),
               onStarted:(){}
@@ -794,7 +902,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
               width: 60,
               height: 60,
               child: RaisedButton(
-                child: Icon(Icons.file_download),
+                child: Icon(Icons.file_download, color: Colors.white),
                 color: Colors.green,
                 shape: CircleBorder(),
                 onPressed: download,
@@ -807,7 +915,30 @@ class _StatisticsPageState extends State<StatisticsPage> {
               width: 60,
               height: 60,
               child: RaisedButton(
-                child: Icon(Icons.share),
+                child: Icon(Icons.check, color: Colors.white),
+                color: Colors.orange,
+                shape: CircleBorder(),
+                onPressed: () {
+                  for (int i = 0; i < files.length; i++)
+                    if (checkBoxes[i]) {
+                      for (int j = 0; j < files.length; j++)
+                        checkBoxes[j] = false;
+                      setState(() {});
+                      return;
+                    } else
+                    checkBoxes[i] = true;
+                  setState(() {});
+                },
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SizedBox(
+              width: 60,
+              height: 60,
+              child: RaisedButton(
+                child: Icon(Icons.share, color: Colors.white),
                 color: Colors.blueAccent,
                 shape: CircleBorder(),
                 onPressed: shareFiles,

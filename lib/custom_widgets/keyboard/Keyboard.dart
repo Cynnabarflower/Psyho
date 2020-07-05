@@ -7,6 +7,11 @@ import 'package:flutter/widgets.dart';
 
 bool isDigit(String s, int idx) => (s.codeUnitAt(idx) ^ 0x30) <= 9;
 
+var BACKGROUND_COLOR = Colors.lightBlue[100].withOpacity(0.7);
+var KEY_COLOR = Colors.lightBlue;
+var KEY_TEXT_COLOR = Colors.white;
+var INPUT_FIELD_TEXT_COLOR = Colors.lightBlue;
+
 class Keyboard extends StatefulWidget {
   List<Layout> layouts;
   Function onEdited;
@@ -19,6 +24,7 @@ class Keyboard extends StatefulWidget {
   String _editText = '';
   InputField inputField;
   bool standalone = true;
+  num heightRatio = 1.0;
 
   setInputField(InputField inputField) {
     this.inputField = inputField;
@@ -35,6 +41,7 @@ class Keyboard extends StatefulWidget {
       this.canChange,
       this.showInputField = false,
       this.done,
+      this.heightRatio = 0.33,
       this.standalone}) {
     _editText = initValue.toString();
     isPassword = isPassword ?? false;
@@ -58,6 +65,72 @@ class _KeyboardState extends State<Keyboard> {
   double textHeight;
   double textSize;
 
+  getNameInput({showkb = true, height = 60.0, fontsize = 50.0, context}) {
+    return GestureDetector(
+      onTap: () {
+        showkb
+            ? setState(() {
+          Scaffold.of(context).showBottomSheet<void>(
+                (context) => OrientationBuilder(
+              builder: (context, orientation) {
+                if (orientation == Orientation.portrait)
+                  return Container(
+                      height: double.infinity,
+                      width: double.infinity,
+                      color: Colors.transparent,
+                      child: Column(children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Container(
+                              color: Colors.transparent,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          child: Keyboard(
+                            showInputField: true,
+                            standalone: false,
+                            layouts: [Layout.cyrillic()],
+                            onEdited: (val) {
+                              setState(() {
+
+                              });
+                              print(val);
+                            },
+                            initValue: '',
+                          ),
+                        ),
+                      ]));
+                else {
+                  return Container();
+                }
+              },
+            ),
+            backgroundColor: Colors.lightBlueAccent[100].withOpacity(0.0),
+            elevation: 0,
+          );
+        })
+            : {};
+      },
+      child: Container(
+        padding: EdgeInsets.all(8),
+        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 32),
+        decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.4),
+            borderRadius: BorderRadius.all(Radius.circular(8))),
+        child: Container(
+          height: height,
+          alignment: Alignment.center,
+          child: Text(
+            '',
+            style: TextStyle(fontSize: fontsize, color: Colors.lightBlue),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.visible) {
@@ -71,18 +144,18 @@ class _KeyboardState extends State<Keyboard> {
 
       return LayoutBuilder(
         builder: (context, constraints) => SizedBox(
-          height: MediaQuery.of(context).size.height/3,
+          height: MediaQuery.of(context).size.height * widget.heightRatio,
           child: Column(
             children: <Widget>[
               widget.showInputField && widget.inputField != null?
               Flexible(
-                  flex: 1,
+                  flex: 3,
                   child:
                   () {widget.inputField.text = widget._editText; return widget.inputField; }.call()
               )            :
               Container(),
               Flexible(
-                  flex: constraints.maxWidth > constraints.maxHeight ? 1 : 1,
+                  flex: 4,
                   child: Container(child: _getKeyboard()))
             ],
           ),
@@ -576,7 +649,6 @@ class Layout extends StatefulWidget {
     erase = erase ?? widget.erase;
     tapped = tapped ??  widget.tapped;
     var canChange = widget.canChange;
-
     var params =
         _getFitParams(3, 4, w, h, ratio: 1, strict: true, context: context);
     var size = params.key;
@@ -1099,7 +1171,7 @@ class _KeyboardLayoutState extends State<Layout> {
                   padding: widget.padding ?? EdgeInsets.all(0),
                   margin: widget.margin ?? EdgeInsets.all(0),
                   decoration: BoxDecoration(
-                      color: Colors.amberAccent,
+                      color: BACKGROUND_COLOR,
                       borderRadius: BorderRadius.all(Radius.circular(8))),
                   child: kb)
             ]),
@@ -1155,7 +1227,7 @@ class _KeyboardButton extends StatefulWidget {
   Function tapped;
   IconData iconData;
   Image image;
-  Color color;
+  var color;
   double margin;
   double borderRadius;
   double fontSize;
@@ -1176,7 +1248,7 @@ class _KeyboardButton extends StatefulWidget {
       this.borderRadius: 2,
       this.fontSize: 28,
       this.iconSize: 28}) {
-    color = color ?? Colors.redAccent;
+    color = color ?? KEY_COLOR;
     value = value ?? text;
   }
 
@@ -1244,7 +1316,7 @@ class _KeyboardButtonState extends State<_KeyboardButton> {
             padding: EdgeInsets.all(0),
             decoration: BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(borderRadius)),
-                color: widget.color.withOpacity(pressed ? 0.66 : 1)),
+                color: widget.color.withOpacity(pressed ? 0.66 : 1.0)),
             child: FittedBox(
               fit: BoxFit.fill,
               child:
@@ -1252,8 +1324,8 @@ class _KeyboardButtonState extends State<_KeyboardButton> {
                 alignment: WrapAlignment.spaceAround,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: <Widget>[
-                  icon == null ? widget.image == null ? text == ' ' ? Icon(Icons.space_bar) : Container() : widget.image:  Icon(icon),
-                  text == null || text == ' ' ? Container(width: 1, height: 1,) :  Text(text, style: TextStyle(fontSize: fontSize))
+                  icon == null ? widget.image == null ? text == ' ' ? Icon(Icons.space_bar, size: fontSize,) : Container() : ColorFiltered(child: widget.image,colorFilter: ColorFilter.mode(KEY_TEXT_COLOR, BlendMode.srcIn),):  Icon(icon, color: KEY_TEXT_COLOR, size: fontSize,),
+                  text == null || text == ' ' ? Container(width: 1, height: 1,) :  Text(text, style: TextStyle(fontSize: fontSize, color: KEY_TEXT_COLOR))
                 ],
               ),
             ),
@@ -1361,7 +1433,7 @@ class _InputFieldState extends State<InputField> {
                         visibleText,
                         style: TextStyle(
                           fontSize: textSize,
-                          color: Colors.redAccent,
+                          color: INPUT_FIELD_TEXT_COLOR,
                           textBaseline: TextBaseline.alphabetic,
                         )),
                   ]),

@@ -6,14 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:psycho_app/custom_widgets/particles/Particles.dart';
 import 'package:psycho_app/custom_widgets/wave/config.dart';
-import 'dart:math' as math;
 
 import 'package:psycho_app/custom_widgets/wave/wave.dart';
-import 'package:psycho_app/screens/game/Game2.dart';
-import 'package:psycho_app/screens/game/game.dart';
+import 'package:psycho_app/screens/game/LevelChooser.dart';
 import 'package:psycho_app/screens/register/register.dart';
 import 'package:psycho_app/screens/settings/settings.dart';
-import 'package:psycho_app/screens/settings/temp.dart';
 
 class MainMenu extends StatefulWidget {
 
@@ -30,10 +27,16 @@ class MainMenu extends StatefulWidget {
 
 class _MainMenuState extends State<MainMenu>
     with SingleTickerProviderStateMixin {
+
   AnimationController animationController;
   Animation<double> animation;
   List<Color> buttonsAlpha = List.filled(2, Color(0xffffffff));
   String welcomeText = "";
+  GlobalKey tabsKey = GlobalKey();
+  PageController pageController = PageController(initialPage: 1);
+  ScrollPhysics pageScrollPhysics = NeverScrollableScrollPhysics();
+  String gameName = '';
+
 
   Future<bool> loadSettings() async {
     await Settings.read('main').then((value) {
@@ -57,7 +60,7 @@ class _MainMenuState extends State<MainMenu>
 
   @override
   void initState() {
-
+    Settings.setParam('main', 'first_launch', false);
     loadSettings().then((value) => setState((){}));
     super.initState();
     animationController =
@@ -81,6 +84,11 @@ class _MainMenuState extends State<MainMenu>
     animation = Tween<double>(begin: 0, end: 2).animate(curve);
 
     animationController.forward();
+
+    pageController.addListener(() {
+      print(pageController.page);
+      pageScrollPhysics = pageController.page == 1 ? NeverScrollableScrollPhysics() :  AlwaysScrollableScrollPhysics();
+    });
   }
 
   @override
@@ -92,186 +100,194 @@ class _MainMenuState extends State<MainMenu>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomPadding: false,
-      body: OrientationBuilder(builder: (context, orientation) {
-        return Container(
-          color: Colors.amber,
-          child: Stack(
-            alignment: AlignmentDirectional.center,
-            fit: StackFit.expand,
-            children: <Widget>[
-              getWaves(),
-              Align(
-                alignment: orientation == Orientation.landscape ? Alignment(-0.5, -0.2) : Alignment(0, -0.4),
-                widthFactor: 0.15,
-                heightFactor: 0.15,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: buttonsAlpha[0],
-                    gradient: LinearGradient(
-                      colors: <Color>[
-                        Colors.amber[300].withOpacity(0.66),
-                        Colors.amber[900].withOpacity(0.66),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+
+    var vtabs = PageView(
+      children: [
+        LevelChooser(gameName),
+        OrientationBuilder(builder: (context, orientation) {
+          return Container(
+            color: Colors.white,
+            child: Stack(
+              alignment: AlignmentDirectional.center,
+              fit: StackFit.expand,
+              children: <Widget>[
+                getWaves(),
+                Align(
+                  alignment: orientation == Orientation.landscape ? Alignment(-0.5, -0.2) : Alignment(0, -0.4),
+                  widthFactor: 0.15,
+                  heightFactor: 0.15,
+                  child: Container(
+                    width: 300,
+                    height: 300,
+                    decoration: BoxDecoration(
+                      color: buttonsAlpha[0].withOpacity(0),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: EdgeInsets.all(16),
-                  child: GestureDetector(
-                    onTap: (){
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => Game2(folderName: "assets/tBalloons/",)),
-                      );
-                    },
-                    onTapDown: (tapDownDetails) {
+                    padding: EdgeInsets.all(16),
+                    child: GestureDetector(
+                      onTap: (){
+                        setState(() {
+                          gameName = 'assets/tBalloons/';
+                          pageController.animateToPage(0, duration: Duration(milliseconds: 1000), curve: Curves.easeInOut);
+                        });
+                      },
+                      onTapDown: (tapDownDetails) {
                         buttonsAlpha[0] = Color(0x33ffffff);
                       },
-                    onTapCancel: () {
-                      buttonsAlpha[0] = Color(0xffffffff);
-                    },
-                    onTapUp: (tepUpDetails) {
-                      buttonsAlpha[0] = Color(0xffffffff);
-                    } ,
+                      onTapCancel: () {
+                        buttonsAlpha[0] = Color(0xffffffff);
+                      },
+                      onTapUp: (tepUpDetails) {
+                        buttonsAlpha[0] = Color(0xffffffff);
+                      } ,
 
-                    child: Image(
-                      image: AssetImage("assets/balloons.png"),
-                      colorBlendMode: BlendMode.dstIn,
-                      color: buttonsAlpha[0],
-                    ),
-                  ),
-                ),
-              ),
-              Align(
-                alignment: orientation == Orientation.landscape ? Alignment(0.5, 0.3) : Alignment(0, 0.4),
-                widthFactor: 0.15,
-                heightFactor: 0.15,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: buttonsAlpha[1],
-                    gradient: LinearGradient(
-                      colors: <Color>[
-                        Colors.amber[300].withOpacity(0.66),
-                        Colors.amber[900].withOpacity(0.66),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: EdgeInsets.all(16),
-                  child: GestureDetector(
-                    onTap: () {
-                    },
-                    onTapDown: (tapDownDetails) {
-                      buttonsAlpha[1] = Color(0x33ffffff);
-                    },
-                    onTapCancel: () {
-                      buttonsAlpha[1] = Color(0xffffffff);
-                    },
-                    onTapUp: (tepUpDetails) {
-                      buttonsAlpha[1] = Color(0xffffffff);
-                    } ,
-                    child: Image(
-                      image: AssetImage("assets/clown.png"),
-                      colorBlendMode: BlendMode.dstIn,
-                      color: buttonsAlpha[1],
-                    ),
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child:
-                Padding(
-                  padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: <Widget>[
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: <Widget>[
-                          SizedBox(
-                            width: 60,
-                            height: 60,
-                            child: RaisedButton(
-                              child: Icon(Icons.person),
-                              color: Colors.redAccent,
-                              shape: CircleBorder(),
-                              onPressed: () {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => Register()),
-                                );
-                              },
-                            ),
-                          ),
-                          widget.name == null ? Container() : Container(
-                            margin: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                            child: Text(widget.name, style: TextStyle(
-                                fontSize: 180/(max(widget.name.length, 5)),
-                                color: Colors.redAccent,
-                                shadows: [Shadow(color: Colors.amber,
-                                    offset: Offset(2, 2))]
-                            )
-                            ),
-                          ),
-                        ],
-
+                      child: Image(
+                        image: AssetImage("assets/balloons.png"),
+                        colorBlendMode: BlendMode.dstIn,
+                        color: buttonsAlpha[0],
                       ),
-
-                      SizedBox(
-                        width: 60,
-                        height: 60,
-                        child: RaisedButton(
-                          child: Icon(Icons.settings),
-                          color: Colors.yellow,
-                          shape: CircleBorder(),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => Settings()),
-                            );
-                          },
-                        ),
-                      )
-                    ],
+                    ),
                   ),
                 ),
-              )
-            ],
-          ),
-        );
-      }),
+                Align(
+                  alignment: orientation == Orientation.landscape ? Alignment(0.5, 0.3) : Alignment(0, 0.4),
+                  widthFactor: 0.15,
+                  heightFactor: 0.15,
+                  child: Container(
+                    width: 300,
+                    height: 300,
+                    decoration: BoxDecoration(
+
+
+                      color: Colors.white.withOpacity(0),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: EdgeInsets.all(16),
+                    child: GestureDetector(
+                      onTap: () {
+                        gameName = 'assets/Robot/';
+                        pageController.animateToPage(0, duration: Duration(milliseconds: 1000), curve: Curves.easeInOut);
+                      },
+                      onTapDown: (tapDownDetails) {
+                        buttonsAlpha[1] = Color(0x33ffffff);
+                      },
+                      onTapCancel: () {
+                        buttonsAlpha[1] = Color(0xffffffff);
+                      },
+                      onTapUp: (tepUpDetails) {
+                        buttonsAlpha[1] = Color(0xffffffff);
+                      } ,
+                      child: Image(
+                        image: AssetImage("assets/clown.png"),
+                        colorBlendMode: BlendMode.dstIn,
+                        color: buttonsAlpha[1],
+                      ),
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child:
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: <Widget>[
+                            SizedBox(
+                              width: 60,
+                              height: 60,
+                              child: RaisedButton(
+                                child: Icon(Icons.person),
+                                color: Colors.green.withOpacity(0.8),
+                                shape: CircleBorder(),
+                                onPressed: () {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => Register()),
+                                  );
+                                },
+                              ),
+                            ),
+                            welcomeText == null ? Container() : Container(
+                              margin: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                              child: Text(welcomeText, style: TextStyle(
+                                fontSize: 180/(max(welcomeText.length, 5)),
+                                color: Colors.lightBlueAccent[100],
+                              )
+                              ),
+                            ),
+                          ],
+
+                        ),
+
+                        SizedBox(
+                          width: 60,
+                          height: 60,
+                          child: RaisedButton(
+                            child: Icon(Icons.settings),
+                            color: Colors.lightBlueAccent[100],
+                            shape: CircleBorder(),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => Settings()),
+                              );
+                            },
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                )
+              ],
+            ),
+          );
+        }),
+      ],
+      controller: pageController,
+      scrollDirection: Axis.vertical,
+      physics: pageScrollPhysics,
+    );
+
+    return WillPopScope(
+      child: Scaffold(
+        resizeToAvoidBottomPadding: false,
+        body: vtabs
+      ),
+      onWillPop: (){
+        if (pageController.page == 0) {
+          pageController.animateToPage(1, duration: Duration(milliseconds: 1000),
+              curve: Curves.easeInOut);
+          return new Future(() => false);
+        }
+        return new Future(() => true);
+      },
     );
   }
 
-  Widget getWaves() {
+ Widget getWaves() {
     return
       WaveWidget(
-        backgroundColor: Color(0xFFFF8833),
+        backgroundColor: Colors.lightBlueAccent.withOpacity(0.6),
         config: CustomConfig(
           gradients: [
-            [Colors.redAccent, Color(0x88F68484)],
-            [Colors.red, Color(0x77E57373)],
-            [Colors.orange, Color(0x66FF9800)],
-            [Colors.yellow, Color(0x55FFEB3B)]
+            [Colors.white, Colors.white.withOpacity(0.6), Colors.white.withOpacity(0.4), Colors.white.withOpacity(0.2), Colors.white.withOpacity(0)],
+            [Colors.green, Colors.green],
+            [Colors.green[700].withOpacity(0.15), Colors.green[700].withOpacity(0.1)],
+            [Colors.green[900].withOpacity(0.1), Colors.green[900].withOpacity(0.1)],
+
           ],
           blur: MaskFilter.blur(
             BlurStyle.outer,
             0.0,
           ),
           durations: [30000, 30000, 30000, 30000],
-          heightPercentages: [0.0, 0.25, 0.50, 0.75],
+          heightPercentages: [0.0, 0.75, 0.85, 0.95],
         ),
         duration: 100,
         isLoop: true,
