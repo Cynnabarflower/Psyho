@@ -1,13 +1,13 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_share/flutter_share.dart';
+import 'package:ftpclient/ftpclient.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:psycho_app/custom_widgets/keyboard/Keyboard.dart';
@@ -102,6 +102,20 @@ var PARAMS = {
         {"yes": true},
         {"no": false}
       ],
+    }
+  },
+  "ftp" : {
+    "ip": {
+      "name": "IP     ",
+      "values": [],
+    },
+    "login": {
+      "name": "Login  ",
+      "values": [],
+    },
+    "password": {
+      "name": "Password",
+      "values": [],
     }
   },
   "statistics": {}
@@ -223,7 +237,7 @@ class _SettingsState extends State<Settings> {
                     ConnectionState.done) if (password.isEmpty)
                   return Center(
                       child: DefaultTabController(
-                    length: 3,
+                    length: 4,
                     child: Scaffold(
                       appBar: AppBar(
                         backgroundColor: Colors.lightBlueAccent[200],
@@ -233,6 +247,7 @@ class _SettingsState extends State<Settings> {
                           tabs: [
                             Tab(text: "Main"),
                             Tab(text: "Tutorial"),
+                            Tab(text: "FTP"),
                             Tab(text: "Statistics"),
                           ],
                         ),
@@ -242,6 +257,7 @@ class _SettingsState extends State<Settings> {
                         children: <Widget>[
                           SettingsPage('main', PARAMS['main']),
                           SettingsPage('tutorial', PARAMS['tutorial']),
+                          SettingsPage("ftp", PARAMS['ftp']),
                           StatisticsPage(),
                         ],
                       ),
@@ -399,13 +415,13 @@ class _SettingsPageState extends State<SettingsPage> {
               children: <Widget>[
                 ListView(
                     padding: EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-                    children: fillSettings()),
+                    children: fillSettings() + (widget.name == "ftp" ? <Widget>[ftpCheck()] : <Widget>[])),
                 Container(
                   alignment: Alignment.bottomRight,
                   child:
                   Padding(
                     padding: const EdgeInsets.all(24.0),
-                    child: ConfirmationSlider(
+                    child: widget.name == "main" ? ConfirmationSlider(
                         height: 60,
                         width: 300,
                         shadow: BoxShadow(color: Color.fromARGB(0, 0, 0, 0)),
@@ -419,7 +435,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           Settings.setParam('main', 'stats', {});
                         },
                         onStarted:(){}
-                    ),
+                    ) : Container(),
                   ),
                 ),
               ],
@@ -432,6 +448,44 @@ class _SettingsPageState extends State<SettingsPage> {
         return Future(() => true);
       },
     ),
+    );
+  }
+
+  Widget ftpCheck() {
+    var buttonText = 'Check connection';
+    return StatefulBuilder(
+      builder: (context, setState) {
+        var rb = RaisedButton(onPressed: () {
+          var s = Settings.read("ftp").then((value) {
+            FTPClient ftpClient = FTPClient(value['ip'],
+                user: value['login'], pass: value['password']);
+            try {
+              ftpClient.connect();
+              ftpClient.disconnect();
+              setState(() {
+                buttonText = "Success!";
+              });
+            } catch(e) {
+              setState(() {
+                buttonText = "" + e.toString();
+              });
+            }
+            Timer(Duration(milliseconds: 2000), (){
+              setState(() {
+                buttonText = "Check connection";
+              });
+            });
+
+          });
+        }, child: Text(buttonText),
+            color: Colors.green);
+
+        return Container(
+          padding: EdgeInsets.all(8),
+          height: 70,
+          child: rb,
+        );
+      },
     );
   }
 
@@ -519,7 +573,7 @@ class _ParamState extends State<Param> {
   List<Widget> buttons = [];
   int currentIndex;
   bool editing = false;
-  bool isPassword = true;
+  bool isPassword = false;
 
   @override
   void initState() {
@@ -621,28 +675,6 @@ class _ParamState extends State<Param> {
                     backgroundColor: Colors.lightBlueAccent[100].withOpacity(0.0),
                     elevation: 0,
                   );
-                  /*showModalBottomSheet(
-                      backgroundColor: Colors.blue,
-                      context: context,
-                      builder: (context) =>
-                  Keyboard(
-                    showInputField: true,
-                    layouts: widget.layouts,
-                    onEdited: (val) {
-                      setState(() {
-                        widget.value = val;
-                      });
-                      print(val);
-                    },
-                    initValue: widget.value.toString(),
-                  )
-                ).then((value) {
-                  setState(() {
-                    widget._save(
-                        widget.id, widget.value);
-                    editing = !editing;
-                  });
-                  });*/
                 }
               });
             },
