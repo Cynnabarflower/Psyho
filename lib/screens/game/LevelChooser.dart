@@ -39,20 +39,21 @@ class _LevelChooserState extends State<LevelChooser> {
         value['stats'][widget.folderName] = {};
       }
       for (var level in levels.keys) {
-        for (var stage in levels[level]["level"])
-          switch (stage['answer']) {
-            case "s":
-              stage['answer'] = (ANSWERS.SAME);
-              break;
-            case "d":
-              stage['answer'] = (ANSWERS.DIFFERENT);
-              break;
-            case "f":
-              stage['answer'] = (ANSWERS.NONE);
-              break;
-            default:
-              break;
-          }
+        if (levels[level]["level"] != null)
+          for (var stage in levels[level]["level"])
+            switch (stage['answer']) {
+              case "s":
+                stage['answer'] = (ANSWERS.SAME);
+                break;
+              case "d":
+                stage['answer'] = (ANSWERS.DIFFERENT);
+                break;
+              case "f":
+                stage['answer'] = (ANSWERS.NONE);
+                break;
+              default:
+                break;
+            }
         if (value['stats'][widget.folderName].containsKey(level)) {
           levels[level]['stats'] = value['stats'][widget.folderName][level];
         } else
@@ -61,7 +62,6 @@ class _LevelChooserState extends State<LevelChooser> {
     });
     return true;
   }
-
 
   Widget getLevelButton(String name, double rate, double w, double h) {
     starSize = w / 3 / 1.2;
@@ -80,11 +80,13 @@ class _LevelChooserState extends State<LevelChooser> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => Game3(
-                folderName: widget.folderName,
-                levelName: name,
-                stages: levels[name]['level'],
-                isTutorial: isTutorial,)),
+              MaterialPageRoute(
+                  builder: (context) => Game3(
+                        folderName: widget.folderName,
+                        levelName: name,
+                        stages: levels[name]['level'],
+                        isTutorial: isTutorial,
+                      )),
             );
           },
           onTapDown: (tapDownDetails) {
@@ -122,19 +124,19 @@ class _LevelChooserState extends State<LevelChooser> {
                       children: <Widget>[
                         rate < 1 / 3
                             ? Icon(Icons.star_border,
-                            color: Colors.amberAccent, size: starSize)
+                                color: Colors.amberAccent, size: starSize)
                             : Icon(Icons.star,
-                            color: Colors.amberAccent, size: starSize),
+                                color: Colors.amberAccent, size: starSize),
                         rate < 2 / 3
                             ? Icon(Icons.star_border,
-                            color: Colors.amberAccent, size: starSize)
+                                color: Colors.amberAccent, size: starSize)
                             : Icon(Icons.star,
-                            color: Colors.amberAccent, size: starSize),
+                                color: Colors.amberAccent, size: starSize),
                         rate < 1
                             ? Icon(Icons.star_border,
-                            color: Colors.amberAccent, size: starSize)
+                                color: Colors.amberAccent, size: starSize)
                             : Icon(Icons.star,
-                            color: Colors.amberAccent, size: starSize),
+                                color: Colors.amberAccent, size: starSize),
                       ],
                     )
                   ],
@@ -149,8 +151,7 @@ class _LevelChooserState extends State<LevelChooser> {
 
   @override
   void initState() {
-    loadSettings().then((value) =>
-        setState(() {
+    loadSettings().then((value) => setState(() {
           wrapSpacing = 0;
         }));
     super.initState();
@@ -172,10 +173,7 @@ class _LevelChooserState extends State<LevelChooser> {
               width: 300,
               child: Particles(
                 quan: 6,
-                colors: [
-                  Colors.white.withOpacity(0.8),
-                  Colors.white
-                ],
+                colors: [Colors.white.withOpacity(0.8), Colors.white],
                 duration: Duration(milliseconds: 8000),
                 minSize: 0.002,
                 maxSize: 0.008,
@@ -187,57 +185,54 @@ class _LevelChooserState extends State<LevelChooser> {
                 yCurve: Curves.fastOutSlowIn,
               ),
             ),
-            wrapSpacing != null ?
-            OrientationBuilder(builder: (context, or) {
-              if (or != orientation) {
-                orientation = or;
-                levelButtons = [];
-                buttonW = min(MediaQuery
-                    .of(context)
-                    .size
-                    .width, MediaQuery
-                    .of(context)
-                    .size
-                    .height) * 0.75 / 2;
-                wrapSpacing = buttonW * 0.25 / 2;
+            wrapSpacing != null
+                ? OrientationBuilder(builder: (context, or) {
+                    if (or != orientation) {
+                      orientation = or;
+                      levelButtons = [];
+                      buttonW = min(MediaQuery.of(context).size.width,
+                              MediaQuery.of(context).size.height) *
+                          0.75 /
+                          2;
+                      wrapSpacing = buttonW * 0.25 / 2;
 
-                for (var level in levels.keys)
-                  levelButtons.add(getLevelButton(
-                      level, levels[level]['stats'], buttonW, buttonW));
-              }
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Wrap(
-                    runSpacing: wrapSpacing,
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: levelButtons,
-                    spacing: wrapSpacing,
-                  ),
-                ),
-              );
-            }) : Container(
-              alignment: Alignment.center,
-              child: SizedBox(
-                width: 300,
-                height: 300,
-                child: CircularProgressIndicator(
-                  strokeWidth: 16,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.lightBlue[200].withOpacity(0.7)),
-                ),
-              ),
-            )
+                      for (var level in levels.keys)
+                        levelButtons.add(getLevelButton(
+                            level, levels[level]['stats'], buttonW, buttonW));
+                    }
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Wrap(
+                          runSpacing: wrapSpacing,
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: levelButtons,
+                          spacing: wrapSpacing,
+                        ),
+                      ),
+                    );
+                  })
+                : Container(
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                      width: 300,
+                      height: 300,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 16,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.lightBlue[200].withOpacity(0.7)),
+                      ),
+                    ),
+                  )
           ],
         ),
       ),
     );
   }
 
-
-Widget getWaves() {
-  return
-    WaveWidget(
+  Widget getWaves() {
+    return WaveWidget(
       backgroundColor: Colors.lightBlueAccent.withOpacity(0.6),
       config: CustomConfig(
         gradients: [
@@ -256,8 +251,6 @@ Widget getWaves() {
             Colors.indigo[500].withOpacity(0),
             Colors.indigo[500].withOpacity(1)
           ],
-
-
         ],
         blur: MaskFilter.blur(
           BlurStyle.outer,
@@ -274,7 +267,5 @@ Widget getWaves() {
       ),
       waveAmplitude: 10.0,
     );
-}
-
-
+  }
 }

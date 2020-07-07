@@ -99,8 +99,7 @@ class _Game3State extends State<Game3> with TickerProviderStateMixin {
   }
 
   Future<bool> _loadAssets({int level = 0}) async {
-    _gameLevel =
-        _GameLevel(widget.stages, this, plus: AssetImage('assets/plus.png'));
+    _gameLevel = _GameLevel(widget.stages, this, plus: AssetImage('assets/plus.png'));
     return true;
   }
 
@@ -626,15 +625,70 @@ class _GameLevel {
   _GameLevel(this.stages, this.controller, {this.plus}) {
     isRobot = controller.widget.folderName.toLowerCase().contains('robot');
     if (isRobot) {
+      if (stages == null)
+        generateStages(14, 5);
       updateBalloons();
       robot = createRobot(stages[current]);
       robotThumb = createRobot(stages[current]);
     } else {
+      if (stages == null)
+        generateStages(9, 5);
       updateBalloons();
       balloons = createBalloons(stages[current]);
       balloonsThumb = createBalloons(stages[current]);
     }
   }
+
+  List shuffle(List items) {
+    var random = new Random();
+
+    // Go through all elements.
+    for (var i = items.length - 1; i > 0; i--) {
+
+      // Pick a pseudorandom number according to the list length
+      var n = random.nextInt(i + 1);
+
+      var temp = items[i];
+      items[i] = items[n];
+      items[n] = temp;
+    }
+
+    return items;
+  }
+
+  generateStages(int colorQuan, int quan) {
+    stages = [];
+    int diffLeng = 4;
+    int diff = 1;
+    var colors = [];
+    for (int i = 0; i < colorQuan; i++)
+      colors.add(Random().nextInt(defaultColors.length + 2) % defaultColors.length);
+    var blueGreen = Random().nextInt(2);
+    colors.map((e) => (e == 0 || e == 1) ? blueGreen : e);
+
+    stages.add(
+    {
+    "colors": colors,
+    "answer": ANSWERS.NONE
+    });
+
+    for (int i = 1; i < quan; i++) {
+      colors = List.from(colors);
+      for (int j = 0; j < diff; j++)
+        colors[Random().nextInt(colors.length)] = Random().nextInt(defaultColors.length - 1) + 1;
+      var blueGreen = Random().nextInt(2);
+      colors.map((e) => (e == 0 || e == 1) ? blueGreen : e);
+      colors.shuffle();
+      var answer = getDifferent(first: colors, second: stages[i-1]['colors'], answer: ANSWERS.DIFFERENT);
+      answer = answer[0].length > 0 ? ANSWERS.DIFFERENT : ANSWERS.SAME;
+      stages.add(
+          {
+            "colors": colors,
+            "answer": answer
+          }
+      );
+    }
+    }
 
   updateBalloons() {
     if (isRobot) {
@@ -661,17 +715,32 @@ class _GameLevel {
     var colors = stage['colors']
         .map((e) => defaultColors[e % defaultColors.length])
         .toList();
-    if (current % 2 == 0 || true) {
+    Robot r = Robot(0, 0, colors, controller, key: GlobalKey());
+    r.animationNumber = current % 2;
+   /* if (true) {
       print('Will animate');
       Future.delayed(Duration(milliseconds: 1200), (){
         if (robot.key.currentState != null) {
           print('Animation started');
-          (robot.key.currentState as _RobotState).simpleAnimation3();
+          switch(Random().nextInt(4)) {
+            case 0:
+              (robot.key.currentState as _RobotState).simpleAnimation();
+              break;
+            case 1:
+              (robot.key.currentState as _RobotState).simpleAnimation1();
+              break;
+            case 2:
+              (robot.key.currentState as _RobotState).simpleAnimation2();
+              break;
+            case 3:
+              (robot.key.currentState as _RobotState).simpleAnimation3();
+              break;
+          }
           (robot.key.currentState as _RobotState).startAnimation();
         }
       });
-    }
-    return Robot(0, 0, colors, controller, key: GlobalKey());
+    }*/
+    return r;
   }
 
   createMainWidget(num w, num h, balloons, stage, {isRobot = false}) {
@@ -750,7 +819,8 @@ class _GameLevel {
     } else
       for (var i = 0; i < balloons.length; i++) {
         (balloons[i].key.currentState as _BalloonState).resetAnimation();
-        (balloonsThumb[i].key.currentState as _BalloonState).resetAnimation();
+        if (balloonsThumb[i].key.currentState as _BalloonState != null)
+          (balloonsThumb[i].key.currentState as _BalloonState).resetAnimation();
       }
   }
 
@@ -803,31 +873,44 @@ class _GameLevel {
     return Container();
   }
 
-  getDifferent() {
-    if (current == 0) return [[], []];
+
+  getDifferent({first, second, answer}) {
+
+    if (current == 0 && first == null && second == null) return [[], []];
+
+    if (first == null)
+      if (current > 0)
+        first = stages[current - 1]['colors'];
+      else
+        return [[],[]];
+    if (second == null)
+      second = stages[current]['colors'];
+    if (answer == null)
+      answer = stages[current];
+
 
     var prevBalloons = [];
     var currBalloons = [];
 
-    if (current > 0 && stages[current]['answer'] == ANSWERS.DIFFERENT) {
+    if (answer == ANSWERS.DIFFERENT) {
       var prevColors = {0, 1};
       var currColors = {0, 1};
       for (int i = 0; i < 9; i++) {
-        prevColors.add(stages[current - 1]['colors'][i]);
-        currColors.add(stages[current]['colors'][i]);
+        prevColors.add(first[i]);
+        currColors.add(second[i]);
       }
       for (int i = 0; i < 9; i++) {
-        if (!currColors.contains(stages[current - 1]['colors'][i]))
+        if (!currColors.contains(first[i]))
           prevBalloons.add(i);
-        if (!prevColors.contains(stages[current]['colors'][i]))
+        if (!prevColors.contains(second[i]))
           currBalloons.add(i);
       }
     } else {
       for (int i = 0; i < 9; i++) {
-        if (stages[current - 1]['colors'][i] > 1) {
+        if (first[i] > 1) {
           prevBalloons.add(i);
         }
-        if (stages[current]['colors'][i] > 1) {
+        if (second[i] > 1) {
           currBalloons.add(i);
         }
       }
@@ -999,6 +1082,8 @@ class Robot extends StatefulWidget {
   num alpha = 0.0;
   num beta = 0.0;
 
+  var animationNumber;
+
   Robot(this.w, this.h, this.colors, this.controller, {this.key})
       : super(key: key) {}
 
@@ -1077,12 +1162,28 @@ class _RobotState extends State<Robot> with TickerProviderStateMixin {
     offsetY = widget.h * 0.1;
     var k = widget.w / 576;
     initBody(centerX, offsetY, k);
+    switch(widget.animationNumber) {
+      case 0:
+        simpleAnimation();
+      break;
+      case 1:
+        simpleAnimation1();
+      break;
+/*      case 2:
+        simpleAnimation2();
+        break;
+      case 3:
+        simpleAnimation3();
+        break;*/
+    }
+    Future.delayed(Duration(milliseconds: 0), () => startAnimation());
     super.initState();
   }
 
   void simpleAnimation() {
+    print("simpleAnimation");
     rotationController.duration = Duration(milliseconds: 1000);
-    animationRepeatable = false;
+    animationRepeatable = true;
     animationReversable = true;
     headAnimation = Tween(begin: head.offset.dy, end: head.offset.dy - head.h/10)
         .animate(rotationController);
@@ -1125,7 +1226,29 @@ class _RobotState extends State<Robot> with TickerProviderStateMixin {
   }
 
 
+
+
+  void simpleAnimation1() {
+    print("simpleAnimation1");
+    rotationController.duration = Duration(milliseconds: 1000);
+    animationRepeatable = true;
+    animationReversable = true;
+    rightArm.angle = pi*3/16;
+    rightArm3.angle = pi*10/16;
+    leftArm.angle = pi*5/4;
+
+    leftArm3Animation =
+        Tween(begin: 0.0, end: pi / 2)
+            .animate(rotationController);
+    leftArm3Animation.addListener(() {
+      setState(() {
+        leftArm3.angle = leftArm3Animation.value;
+      });
+    });
+  }
+
   void simpleAnimation2() {
+    print("simpleAnimation2");
     rotationController.duration = Duration(milliseconds: 1000);
     animationRepeatable = true;
     animationReversable = true;
@@ -1145,6 +1268,7 @@ class _RobotState extends State<Robot> with TickerProviderStateMixin {
 
 
   void simpleAnimation3() {
+    print("simpleAnimation3");
     rotationController.duration = Duration(milliseconds: 1100);
     animationRepeatable = true;
     animationReversable = true;
@@ -1325,14 +1449,14 @@ class _RobotState extends State<Robot> with TickerProviderStateMixin {
         color: widget.colors[3],
         controller: rotationController,
         key: GlobalKey());
-    leftHand = BodyPart(widget.hand, 35.0 * k, 35.0 * k,
+    leftHand = BodyPart(widget.hand, 42.0 * k, 42.0 * k,
         offset: leftArm3.offset,
         origin: Offset(0, 0),
         angle: 0,
         color: widget.colors[2],
         controller: rotationController,
         key: GlobalKey());
-    rightHand = BodyPart(widget.hand, 35.0 * k, 35.0 * k,
+    rightHand = BodyPart(widget.hand, 42.0 * k, 42.0 * k,
         offset: rightArm3.offset,
         origin: Offset(0, 0),
         angle: 0,
@@ -1368,8 +1492,12 @@ class _RobotPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = new Paint()
-      ..strokeWidth = 4
       ..style = PaintingStyle.fill;
+
+    final paint2 = new Paint()
+      ..strokeWidth = 4
+      ..style = PaintingStyle.stroke
+      ..color = Colors.black;
 
     paint.color = _robotState.neck.color;
     canvas.drawRRect(
@@ -1382,6 +1510,7 @@ class _RobotPainter extends CustomPainter {
             _robotState.neck.w / 15,
             _robotState.neck.w / 15),
         paint);
+
     canvas.drawRRect(
         RRect.fromRectXY(
             Rect.fromLTRB(
@@ -1402,6 +1531,37 @@ class _RobotPainter extends CustomPainter {
             _robotState.neck.w / 15,
             _robotState.neck.w / 15),
         paint);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTRB(
+                _robotState.neck.offset.dx,
+                _robotState.head.offset.dy + 2,
+                _robotState.neck.offset.dx + _robotState.neck.w / 4,
+                _robotState.neck.h + _robotState.neck.offset.dx),
+            _robotState.neck.w / 15,
+            _robotState.neck.w / 15),
+        paint2);
+
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTRB(
+                _robotState.neck.offset.dx + _robotState.neck.w / 8 * 3,
+                _robotState.head.offset.dy + 2,
+                _robotState.neck.offset.dx + _robotState.neck.w * 5 / 8,
+                _robotState.neck.h + _robotState.neck.offset.dx),
+            _robotState.neck.w / 15,
+            _robotState.neck.w / 15),
+        paint2);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTRB(
+                _robotState.neck.offset.dx + _robotState.neck.w / 8 * 6,
+                _robotState.head.offset.dy + 2,
+                _robotState.neck.offset.dx + _robotState.neck.w,
+                _robotState.neck.h + _robotState.neck.offset.dx),
+            _robotState.neck.w / 15,
+            _robotState.neck.w / 15),
+        paint2);
 
     paint.color = _robotState.head.color;
     canvas.drawRRect(
@@ -1415,19 +1575,26 @@ class _RobotPainter extends CustomPainter {
             _robotState.head.w / 3),
         paint);
 
-    paint.color = Colors.black;
-    paint.style = PaintingStyle.stroke;
-    var h = _robotState.head;
-    canvas.drawOval(Rect.fromLTWH(h.offset.dx + h.w/5, h.offset.dy + h.h/3, h.w/8, h.h/4), paint);
-    canvas.drawOval(Rect.fromLTWH(h.offset.dx + h.w*4/5 - h.w/9, h.offset.dy + h.h/3, h.w/8, h.h/4), paint);
-    paint.style = PaintingStyle.fill;
-    canvas.drawOval(Rect.fromLTWH(h.offset.dx + h.w/5 + h.w/24, h.offset.dy + h.h/3 + h.h/10, h.w/10, h.h/10), paint);
-    canvas.drawOval(Rect.fromLTWH(h.offset.dx + h.w*4/5 - h.w/9 + h.w/24, h.offset.dy + h.h/3 + h.h/10, h.w/10, h.h/10), paint);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTWH(
+                _robotState.head.offset.dx,
+                _robotState.head.offset.dy,
+                _robotState.head.w,
+                _robotState.head.h),
+            _robotState.head.w / 3,
+            _robotState.head.w / 3),
+        paint2);
 
-    paint.color = Colors.black;
-    paint.style = PaintingStyle.stroke;
-    canvas.drawArc(Rect.fromLTWH(h.offset.dx + h.w/4, h.offset.dy + h.h*11/16, h.w/2, h.h/6), 0, pi, false, paint);
-    paint.style = PaintingStyle.fill;
+
+    var h = _robotState.head;
+    canvas.drawOval(Rect.fromLTWH(h.offset.dx + h.w/5, h.offset.dy + h.h/3, h.w/8, h.h/4), paint2);
+    canvas.drawOval(Rect.fromLTWH(h.offset.dx + h.w*4/5 - h.w/9, h.offset.dy + h.h/3, h.w/8, h.h/4), paint2);
+    canvas.drawArc(Rect.fromLTWH(h.offset.dx + h.w/4, h.offset.dy + h.h*11/16, h.w/2, h.h/6), 0, pi, false, paint2);
+    paint2.style = PaintingStyle.fill;
+    canvas.drawOval(Rect.fromLTWH(h.offset.dx + h.w/5 + h.w/24, h.offset.dy + h.h/3 + h.h/10, h.w/10, h.h/10), paint2);
+    canvas.drawOval(Rect.fromLTWH(h.offset.dx + h.w*4/5 - h.w/9 + h.w/24, h.offset.dy + h.h/3 + h.h/10, h.w/10, h.h/10), paint2);
+    paint2.style = PaintingStyle.stroke;
 
 
 
@@ -1446,15 +1613,17 @@ class _RobotPainter extends CustomPainter {
     pelvisPath.lineTo(
         _robotState.pelvis.offset.dx, _robotState.pelvis.offset.dy);
     canvas.drawPath(pelvisPath, paint);
+    canvas.drawPath(pelvisPath, paint2);
 
     paint.color = _robotState.pelvis2.color;
+
     canvas.drawRRect(
         RRect.fromRectXY(
             Rect.fromLTWH(
-                _robotState.pelvis2.offset.dx,
-                _robotState.pelvis2.offset.dy,
-                _robotState.pelvis2.w,
-                _robotState.pelvis2.h / 2),
+                _robotState.pelvis2.offset.dx + _robotState.pelvis2.w / 24,
+                _robotState.pelvis2.offset.dy + _robotState.pelvis2.h / 2.5,
+                _robotState.pelvis2.w / 6,
+                _robotState.pelvis2.h),
             _robotState.pelvis2.w / 15,
             _robotState.pelvis2.w / 15),
         paint);
@@ -1462,6 +1631,19 @@ class _RobotPainter extends CustomPainter {
         RRect.fromRectXY(
             Rect.fromLTWH(
                 _robotState.pelvis2.offset.dx + _robotState.pelvis2.w / 24,
+                _robotState.pelvis2.offset.dy + _robotState.pelvis2.h / 2.5,
+                _robotState.pelvis2.w / 6,
+                _robotState.pelvis2.h),
+            _robotState.pelvis2.w / 15,
+            _robotState.pelvis2.w / 15),
+        paint2);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTWH(
+                _robotState.pelvis2.offset.dx +
+                    _robotState.pelvis2.w -
+                    _robotState.pelvis2.w / 24 -
+                    _robotState.pelvis2.w / 5,
                 _robotState.pelvis2.offset.dy + _robotState.pelvis2.h / 2.5,
                 _robotState.pelvis2.w / 6,
                 _robotState.pelvis2.h),
@@ -1480,7 +1662,28 @@ class _RobotPainter extends CustomPainter {
                 _robotState.pelvis2.h),
             _robotState.pelvis2.w / 15,
             _robotState.pelvis2.w / 15),
+        paint2);
+
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTWH(
+                _robotState.pelvis2.offset.dx,
+                _robotState.pelvis2.offset.dy,
+                _robotState.pelvis2.w,
+                _robotState.pelvis2.h / 2),
+            _robotState.pelvis2.w / 15,
+            _robotState.pelvis2.w / 15),
         paint);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTWH(
+                _robotState.pelvis2.offset.dx,
+                _robotState.pelvis2.offset.dy,
+                _robotState.pelvis2.w,
+                _robotState.pelvis2.h / 2),
+            _robotState.pelvis2.w / 15,
+            _robotState.pelvis2.w / 15),
+        paint2);
 
     paint.color = _robotState.leftLeg.color;
     canvas.drawRRect(
@@ -1493,6 +1696,16 @@ class _RobotPainter extends CustomPainter {
             _robotState.leftLeg.h / 10,
             _robotState.leftLeg.h / 10),
         paint);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTWH(
+                _robotState.leftLeg.offset.dx,
+                _robotState.leftLeg.offset.dy,
+                _robotState.leftLeg.w,
+                _robotState.leftLeg.h),
+            _robotState.leftLeg.h / 10,
+            _robotState.leftLeg.h / 10),
+        paint2);
 
     paint.color = _robotState.rightLeg.color;
     canvas.drawRRect(
@@ -1505,6 +1718,16 @@ class _RobotPainter extends CustomPainter {
             _robotState.rightLeg.h / 10,
             _robotState.rightLeg.h / 10),
         paint);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTWH(
+                _robotState.rightLeg.offset.dx,
+                _robotState.rightLeg.offset.dy,
+                _robotState.rightLeg.w,
+                _robotState.rightLeg.h),
+            _robotState.rightLeg.h / 10,
+            _robotState.rightLeg.h / 10),
+        paint2);
 
     paint.color = _robotState.leftFoot.color;
     canvas.drawRRect(
@@ -1517,6 +1740,16 @@ class _RobotPainter extends CustomPainter {
             _robotState.leftFoot.h / 6,
             _robotState.leftFoot.h / 6),
         paint);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTWH(
+                _robotState.leftFoot.offset.dx,
+                _robotState.leftFoot.offset.dy,
+                _robotState.leftFoot.w,
+                _robotState.leftFoot.h),
+            _robotState.leftFoot.h / 6,
+            _robotState.leftFoot.h / 6),
+        paint2);
 
     paint.color = _robotState.rightFoot.color;
     canvas.drawRRect(
@@ -1529,6 +1762,16 @@ class _RobotPainter extends CustomPainter {
             _robotState.rightFoot.h / 6,
             _robotState.rightFoot.h / 6),
         paint);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTWH(
+                _robotState.rightFoot.offset.dx,
+                _robotState.rightFoot.offset.dy,
+                _robotState.rightFoot.w,
+                _robotState.rightFoot.h),
+            _robotState.rightFoot.h / 6,
+            _robotState.rightFoot.h / 6),
+        paint2);
 
     paint.color = _robotState.body.color;
     canvas.drawRRect(
@@ -1541,6 +1784,16 @@ class _RobotPainter extends CustomPainter {
             _robotState.body.w / 15,
             _robotState.body.w / 15),
         paint);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTWH(
+                _robotState.body.offset.dx,
+                _robotState.body.offset.dy,
+                _robotState.body.w,
+                _robotState.body.h),
+            _robotState.body.w / 15,
+            _robotState.body.w / 15),
+        paint2);
 
     paint.color = _robotState.body1.color;
     canvas.drawRRect(
@@ -1553,6 +1806,16 @@ class _RobotPainter extends CustomPainter {
             _robotState.body1.w / 15,
             _robotState.body1.w / 15),
         paint);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTWH(
+                _robotState.body1.offset.dx,
+                _robotState.body1.offset.dy,
+                _robotState.body1.w,
+                _robotState.body1.h),
+            _robotState.body1.w / 15,
+            _robotState.body1.w / 15),
+        paint2);
 
     paint.color = _robotState.body4.color;
     canvas.drawRRect(
@@ -1565,6 +1828,16 @@ class _RobotPainter extends CustomPainter {
             _robotState.body4.w / 15,
             _robotState.body4.w / 15),
         paint);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTWH(
+                _robotState.body4.offset.dx,
+                _robotState.body4.offset.dy,
+                _robotState.body4.w,
+                _robotState.body4.h),
+            _robotState.body4.w / 15,
+            _robotState.body4.w / 15),
+        paint2);
 
     paint.color = _robotState.body2.color;
     Path body2Path = Path();
@@ -1587,6 +1860,7 @@ class _RobotPainter extends CustomPainter {
     body2Path.lineTo(_robotState.body2.offset.dx + _robotState.body2.w * 0.3,
         _robotState.body2.offset.dy);
     canvas.drawPath(body2Path, paint);
+    canvas.drawPath(body2Path, paint2);
 
     paint.color = _robotState.body3.color;
     canvas.translate(_robotState.body3.offset.dx, _robotState.body3.offset.dy);
@@ -1596,17 +1870,32 @@ class _RobotPainter extends CustomPainter {
         RRect.fromRectXY(Rect.fromLTWH(0, 0, sqW, sqW), sqW / 15, sqW / 15),
         paint);
     canvas.drawRRect(
+        RRect.fromRectXY(Rect.fromLTWH(0, 0, sqW, sqW), sqW / 15, sqW / 15),
+        paint2);
+    canvas.drawRRect(
         RRect.fromRectXY(
             Rect.fromLTWH(sqW / 2, sqW / 2.4, sqW, sqW), sqW / 15, sqW / 15),
         paint);
     canvas.drawRRect(
         RRect.fromRectXY(
+            Rect.fromLTWH(sqW / 2, sqW / 2.4, sqW, sqW), sqW / 15, sqW / 15),
+        paint2);
+    canvas.drawRRect(
+        RRect.fromRectXY(
             Rect.fromLTWH(sqW, sqW / 1.2, sqW, sqW), sqW / 15, sqW / 15),
         paint);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromLTWH(sqW, sqW / 1.2, sqW, sqW), sqW / 15, sqW / 15),
+        paint2);
     canvas.drawRRect(
         RRect.fromRectXY(Rect.fromLTWH(sqW * 3 / 2, sqW * 3 / 2.4, sqW, sqW),
             sqW / 15, sqW / 15),
         paint);
+    canvas.drawRRect(
+        RRect.fromRectXY(Rect.fromLTWH(sqW * 3 / 2, sqW * 3 / 2.4, sqW, sqW),
+            sqW / 15, sqW / 15),
+        paint2);
     canvas.rotate(-pi / 4);
     canvas.translate(
         -_robotState.body3.offset.dx, -_robotState.body3.offset.dy);
@@ -1615,7 +1904,7 @@ class _RobotPainter extends CustomPainter {
     canvas.translate(
         _robotState.rightArm.offset.dx, _robotState.rightArm.offset.dy);
     canvas.rotate(_robotState.rightArm.angle);
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 5; i++) {
       canvas.drawOval(
           Rect.fromLTWH(
               _robotState.rightArm.w / 5 * i,
@@ -1623,6 +1912,14 @@ class _RobotPainter extends CustomPainter {
               _robotState.rightArm.w / 4.5,
               _robotState.rightArm.h),
           paint);
+      canvas.drawOval(
+          Rect.fromLTWH(
+              _robotState.rightArm.w / 5 * i,
+              -_robotState.rightArm.h / 2,
+              _robotState.rightArm.w / 4.5,
+              _robotState.rightArm.h),
+          paint2);
+    }
     canvas.translate(
         -_robotState.rightArm.offset.dx, -_robotState.rightArm.offset.dy);
 
@@ -1630,7 +1927,7 @@ class _RobotPainter extends CustomPainter {
     canvas.translate(
         _robotState.rightArm3.offset.dx, _robotState.rightArm3.offset.dy);
     canvas.rotate(_robotState.rightArm3.angle);
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 5; i++) {
       canvas.drawOval(
           Rect.fromLTWH(
               _robotState.rightArm3.w / 5 * i,
@@ -1638,6 +1935,14 @@ class _RobotPainter extends CustomPainter {
               _robotState.rightArm3.w / 4.5,
               _robotState.rightArm3.h),
           paint);
+      canvas.drawOval(
+          Rect.fromLTWH(
+              _robotState.rightArm3.w / 5 * i,
+              -_robotState.rightArm3.h / 2,
+              _robotState.rightArm3.w / 4.5,
+              _robotState.rightArm3.h),
+          paint2);
+    }
 
     canvas.translate(
         -_robotState.rightArm3.offset.dx, -_robotState.rightArm3.offset.dy);
@@ -1653,7 +1958,10 @@ class _RobotPainter extends CustomPainter {
         Rect.fromLTWH(offset.dx, offset.dy, _robotState.rightArm2.w,
             _robotState.rightArm2.h),
         paint);
-
+    canvas.drawOval(
+        Rect.fromLTWH(offset.dx, offset.dy, _robotState.rightArm2.w,
+            _robotState.rightArm2.h),
+        paint2);
 /*
     canvas.translate(
         -_robotState.rightArm.offset.dx + _robotState.rightArm2.w / 2,
@@ -1668,6 +1976,10 @@ class _RobotPainter extends CustomPainter {
         Rect.fromLTWH(0,0, _robotState.rightHand.w,
             _robotState.rightHand.h),
         paint);
+    canvas.drawOval(
+        Rect.fromLTWH(0,0, _robotState.rightHand.w,
+            _robotState.rightHand.h),
+        paint2);
     canvas.rotate(-_robotState.rightHand.angle);
     canvas.translate(-offset.dx -_robotState.rightArm3.w, 0);
     canvas.translate(
@@ -1694,7 +2006,7 @@ class _RobotPainter extends CustomPainter {
     canvas.translate(
         _robotState.leftArm.offset.dx, _robotState.leftArm.offset.dy);
     canvas.rotate(_robotState.leftArm.angle);
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 5; i++) {
       canvas.drawOval(
           Rect.fromLTWH(
               _robotState.leftArm.w / 5 * i,
@@ -1702,6 +2014,14 @@ class _RobotPainter extends CustomPainter {
               _robotState.leftArm.w / 4.5,
               _robotState.leftArm.h),
           paint);
+      canvas.drawOval(
+          Rect.fromLTWH(
+              _robotState.leftArm.w / 5 * i,
+              -_robotState.leftArm.h / 2,
+              _robotState.leftArm.w / 4.5,
+              _robotState.leftArm.h),
+          paint2);
+    }
     canvas.translate(
         -_robotState.leftArm.offset.dx, -_robotState.leftArm.offset.dy);
 
@@ -1709,7 +2029,7 @@ class _RobotPainter extends CustomPainter {
     canvas.translate(
         _robotState.leftArm3.offset.dx, _robotState.leftArm3.offset.dy);
     canvas.rotate(_robotState.leftArm3.angle);
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 5; i++) {
       canvas.drawOval(
           Rect.fromLTWH(
               _robotState.leftArm3.w / 5 * i,
@@ -1717,6 +2037,14 @@ class _RobotPainter extends CustomPainter {
               _robotState.leftArm3.w / 4.5,
               _robotState.leftArm3.h),
           paint);
+      canvas.drawOval(
+          Rect.fromLTWH(
+              _robotState.leftArm3.w / 5 * i,
+              -_robotState.leftArm3.h / 2,
+              _robotState.leftArm3.w / 4.5,
+              _robotState.leftArm3.h),
+          paint2);
+    }
     canvas.translate(
         -_robotState.leftArm3.offset.dx, -_robotState.leftArm3.offset.dy);
 
@@ -1729,6 +2057,10 @@ class _RobotPainter extends CustomPainter {
         Rect.fromLTWH(offset.dx, offset.dy, _robotState.leftArm2.w,
             _robotState.leftArm2.h),
         paint);
+    canvas.drawOval(
+        Rect.fromLTWH(offset.dx, offset.dy, _robotState.leftArm2.w,
+            _robotState.leftArm2.h),
+        paint2);
 /*
     canvas.translate(-_robotState.leftArm.offset.dx - _robotState.leftArm2.w / 2,
         -_robotState.leftArm.offset.dy - _robotState.leftArm2.h / 2);
@@ -1743,6 +2075,10 @@ class _RobotPainter extends CustomPainter {
         Rect.fromLTWH(0, 0, _robotState.leftHand.w,
             _robotState.leftHand.h),
         paint);
+    canvas.drawOval(
+        Rect.fromLTWH(0, 0, _robotState.leftHand.w,
+            _robotState.leftHand.h),
+        paint2);
   }
 
   @override

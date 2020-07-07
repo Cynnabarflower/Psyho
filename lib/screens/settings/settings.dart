@@ -832,6 +832,33 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
+  Future<void> uploadFtp() async {
+    var fileToShare = await getChosenFiles();
+    if (fileToShare.isEmpty)
+      return;
+    String fileName = fileToShare.substring(fileToShare.lastIndexOf('/') + 1);
+    var s = Settings.read("ftp").then((value) {
+      FTPClient ftpClient = FTPClient(value['ip'],
+          user: value['login'], pass: value['password']);
+      try {
+        var f = File(fileToShare);
+        ftpClient.connect();
+        ftpClient.uploadFile(f);
+        ftpClient.disconnect();
+        setState(() {
+          Scaffold.of(context).showSnackBar(SnackBar(
+            content: Text(fileName+" uploaded"),
+          ));
+        });
+      } catch(e) {
+        Scaffold.of(context).showSnackBar(SnackBar(
+          content: Text(e.toString()),
+        ));
+      }
+
+    });
+  }
+
   deleteFiles() async {
     var chosenFiles = [];
     for (int i = 0; i < files.length; i++)
@@ -974,6 +1001,19 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 color: Colors.blueAccent,
                 shape: CircleBorder(),
                 onPressed: shareFiles,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SizedBox(
+              width: 60,
+              height: 60,
+              child: RaisedButton(
+                child: Column(children: [ Icon(Icons.file_upload, color: Colors.white), Text("FTP",style: TextStyle(color: Colors.white),)],mainAxisAlignment: MainAxisAlignment.center,),
+                color: Colors.cyanAccent,
+                shape: CircleBorder(),
+                onPressed: uploadFtp,
               ),
             ),
           )

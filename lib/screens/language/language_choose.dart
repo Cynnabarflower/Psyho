@@ -13,7 +13,7 @@ class LanguageChoose extends StatelessWidget {
     return Scaffold(
       body: Container(
         alignment: Alignment.center,
-        color: Colors.amberAccent,
+        color: Colors.blue,
         padding: EdgeInsets.all(16),
         child: SafeArea(
           child: Row(
@@ -54,7 +54,7 @@ class LanguageChoose extends StatelessWidget {
                                 child: Text(
                                   'Русский',
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 54, color: Colors.amberAccent),
+                                  style: TextStyle(fontSize: 54, color: Colors.white),
                                 ),
                               ),
                             ),
@@ -62,7 +62,7 @@ class LanguageChoose extends StatelessWidget {
                         ),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: Colors.redAccent,
+                          color: Colors.blue[400],
                           borderRadius: BorderRadius.circular(32),
                         ),
                       ),
@@ -104,7 +104,7 @@ class LanguageChoose extends StatelessWidget {
                                 child: Text(
                                   'English',
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 54, color: Colors.amberAccent),
+                                  style: TextStyle(fontSize: 54, color: Colors.white),
                                 ),
                               ),
                             ),
@@ -112,7 +112,7 @@ class LanguageChoose extends StatelessWidget {
                         ),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: Colors.redAccent,
+                          color: Colors.blue[400],
                           borderRadius: BorderRadius.circular(32),
                         ),
                       ),
